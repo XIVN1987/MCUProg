@@ -1,0 +1,46 @@
+"""
+ Flash OS Routines (Automagically Generated)
+ Copyright (c) 2017-2017 ARM Limited
+"""
+
+flash_algo = {
+    'load_address' : {{'0x%08X' %entry}},
+    'instructions' : [
+        {{prog_header}}
+        {{algo.format_algo_data(8, 8, "c")}}
+    ],
+
+    'pc_Init'            : {{'0x%08X' %(entry + header_size + algo.symbols['Init'])}},
+    'pc_UnInit'          : {{'0x%08X' %(entry + header_size + algo.symbols['UnInit'])}},
+    'pc_EraseSector'     : {{'0x%08X' %(entry + header_size + algo.symbols['EraseSector'])}},
+    'pc_ProgramPage'     : {{'0x%08X' %(entry + header_size + algo.symbols['ProgramPage'])}},
+    'pc_Verify'          : {{'0x%08X' %(entry + header_size + algo.symbols['Verify'])}},
+    'pc_EraseChip'       : {{'0x%08X' %(entry + header_size + algo.symbols['EraseChip'])}},
+    'pc_BlankCheck'      : {{'0x%08X' %(entry + header_size + algo.symbols['BlankCheck'])}},
+    'pc_Read'            : {{'0x%08X' %(entry + header_size + algo.symbols['Read'])}},
+    
+    'static_base'        : {{'0x%08X' %(entry + (algo.ro_size+1023)//1024*1024)}},
+    'begin_data'         : {{'0x%08X' %(entry + (algo.ro_size+1023)//1024*1024 + (algo.rw_size+1023)//1024*1024)}},
+    'begin_stack'        : {{'0x%08X' %(entry + (algo.ro_size+1023)//1024*1024 + (algo.rw_size+1023)//1024*1024 + (algo.flash_page_size+1023)//1024*1024 + 1024)}},
+
+    'analyzer_supported' : False,
+
+    # Relative region addresses and sizes
+    'ro_start'           : {{'0x%08X' %algo.ro_start}},
+    'ro_size'            : {{'0x%08X' %algo.ro_size}},
+    'rw_start'           : {{'0x%08X' %algo.rw_start}},
+    'rw_size'            : {{'0x%08X' %algo.rw_size}},
+    'zi_start'           : {{'0x%08X' %algo.zi_start}},
+    'zi_size'            : {{'0x%08X' %algo.zi_size}},
+
+    # Flash information
+    'flash_start'        : {{'0x%08X' %algo.flash_start}},
+    'flash_size'         : {{'0x%08X' %algo.flash_size}},
+    'flash_page_size'    : {{'0x%08X' %algo.flash_page_size}},
+    'sector_sizes': (
+    {%- for start, size  in algo.flash_info.sector_info_list %}
+        {{ "(0x%05X, 0x%05X)" % (start, size) }}, 
+    {%- endfor %}
+    )
+}
+
