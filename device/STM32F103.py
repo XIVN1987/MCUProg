@@ -57,7 +57,8 @@ class STM32F103C8(object):
         self.lock()
 
     def chip_write(self, addr, data):
-        data = data + [0xFF] * (self.PAGE_SIZE - len(data)%self.PAGE_SIZE)
+        if len(data)%self.PAGE_SIZE:
+            data = data + [0xFF] * (self.PAGE_SIZE - len(data)%self.PAGE_SIZE)
 
         self.sect_erase(addr, len(data))
 

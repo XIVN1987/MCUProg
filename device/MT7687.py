@@ -23,7 +23,8 @@ class MT7687(object):
         self.flash.UnInit(1)
 
     def chip_write(self, addr, data):
-        data = data + [0xFF] * (self.PAGE_SIZE - len(data)%self.PAGE_SIZE)
+        if len(data)%self.PAGE_SIZE:
+            data = data + [0xFF] * (self.PAGE_SIZE - len(data)%self.PAGE_SIZE)
 
         self.sect_erase(addr, len(data))
 
