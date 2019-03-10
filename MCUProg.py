@@ -1,4 +1,4 @@
-#! C:\Python27\python.exe
+#! python2
 #coding: utf-8
 ''' 更改记录
 '''
