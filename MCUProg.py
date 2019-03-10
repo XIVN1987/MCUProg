@@ -4,6 +4,7 @@
 '''
 import os
 import sys
+import collections
 import ConfigParser
 
 import sip
@@ -62,8 +63,8 @@ class MCUProg(QtGui.QWidget):
 
     @QtCore.pyqtSlot()
     def on_btnWrite_clicked(self):
-        if   self.cmbHEX.currentText()[-4:].lower() == '.bin': data = open(self.cmbHEX.currentText(), 'rb').read()
-        elif self.cmbHEX.currentText()[-4:].lower() == '.hex': data = parseHex(self.cmbHEX.currentText())
+        if self.cmbHEX.currentText().endswith('.hex'): data = parseHex(self.cmbHEX.currentText())
+        else:                                          data = open(self.cmbHEX.currentText(), 'rb').read()
 
         self.jlk = jlink.JLink(self.linDLL.text().encode('gbk'), device.Devices[self.cmbMCU.currentText()].CHIP_CORE)
         self.dev = device.Devices[self.cmbMCU.currentText()](self.jlk)
@@ -147,8 +148,10 @@ class MCUProg(QtGui.QWidget):
         self.conf.set('globals', 'addr', self.cmbAddr.currentText())
         self.conf.set('globals', 'size', self.cmbSize.currentText())
         self.conf.set('globals', 'dllpath', self.linDLL.text().encode('gbk'))
-        self.conf.set('globals', 'hexpath', repr(([self.cmbHEX.currentText()] if self.cmbHEX.currentIndex() != 0 else []) 
-                                                + [self.cmbHEX.itemText(i) for i in range(min(9, self.cmbHEX.count()))]))
+        
+        hexpath = [self.cmbHEX.currentText()] + [self.cmbHEX.itemText(i) for i in range(self.cmbHEX.count())]
+        self.conf.set('globals', 'hexpath', list(collections.OrderedDict.fromkeys(hexpath)))    # 保留顺序去重    
+        
         self.conf.write(open('setting.ini', 'w'))
 
 
