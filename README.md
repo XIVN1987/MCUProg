@@ -1,4 +1,4 @@
-# JMCUProgFast
+# JMCUProg
  MCU programmer using J-LINK Debugger, using Keil MDK's *.FLM Flashing Algorithm
  
 to run this software, you need python 2.7 and pyqt4
