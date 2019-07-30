@@ -11,7 +11,7 @@ class JLink(object):
         self.jlk.JLINKARM_ExecCommand('Device = %s' %coretype, err_buf, 64)
 
         self.jlk.JLINKARM_TIF_Select(1)
-        self.jlk.JLINKARM_SetSpeed(12000)
+        self.jlk.JLINKARM_SetSpeed(4000)
         self.jlk.JLINKARM_Reset()
 
     def write_U32(self, addr, val):

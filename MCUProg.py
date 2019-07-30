@@ -1,6 +1,11 @@
 #! python2
 #coding: utf-8
 ''' 更改记录
+2019/3/2 将 chip_write() 中的：
+data = data + [0xFF] * (self.PAGE_SIZE - len(data)%self.PAGE_SIZE)
+修正为：
+if len(data)%self.PAGE_SIZE:
+    data = data + [0xFF] * (self.PAGE_SIZE - len(data)%self.PAGE_SIZE)
 '''
 import os
 import sys
@@ -148,10 +153,10 @@ class MCUProg(QtGui.QWidget):
         self.conf.set('globals', 'addr', self.cmbAddr.currentText())
         self.conf.set('globals', 'size', self.cmbSize.currentText())
         self.conf.set('globals', 'dllpath', self.linDLL.text().encode('gbk'))
-        
+
         hexpath = [self.cmbHEX.currentText()] + [self.cmbHEX.itemText(i) for i in range(self.cmbHEX.count())]
         self.conf.set('globals', 'hexpath', list(collections.OrderedDict.fromkeys(hexpath)))    # 保留顺序去重    
-        
+
         self.conf.write(open('setting.ini', 'w'))
 
 

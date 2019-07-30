@@ -19,7 +19,7 @@ class NUM480(object):
     def sect_erase(self, addr, size):
         self.flash.Init(0, 0, 1)
         for i in range(0, (size + self.SECT_SIZE - 1)//self.SECT_SIZE):
-            self.flash.EraseSector(0x10000000 + addr + self.SECT_SIZE * i)
+            self.flash.EraseSector(addr + self.SECT_SIZE * i)
         self.flash.UnInit(1)
 
     def chip_write(self, addr, data):
@@ -30,7 +30,7 @@ class NUM480(object):
 
         self.flash.Init(0, 0, 2)
         for i in range(0, len(data)//self.PAGE_SIZE):
-            self.flash.ProgramPage(0x10000000 + addr + self.PAGE_SIZE * i, data[self.PAGE_SIZE*i : self.PAGE_SIZE*(i+1)])
+            self.flash.ProgramPage(addr + self.PAGE_SIZE * i, data[self.PAGE_SIZE*i : self.PAGE_SIZE*(i+1)])
         self.flash.UnInit(2)
 
     def chip_read(self, addr, size, buff):
