@@ -1,6 +1,4 @@
-#coding: utf-8
 from .flash import Flash
-import time
 
 class NUM480(object):
     CHIP_CORE = 'Cortex-M4'
@@ -23,9 +21,6 @@ class NUM480(object):
         self.flash.UnInit(1)
 
     def chip_write(self, addr, data):
-        if len(data)%self.PAGE_SIZE:
-            data = data + [0xFF] * (self.PAGE_SIZE - len(data)%self.PAGE_SIZE)
-
         self.sect_erase(addr, len(data))
 
         self.flash.Init(0, 0, 2)
@@ -34,9 +29,9 @@ class NUM480(object):
         self.flash.UnInit(2)
 
     def chip_read(self, addr, size, buff):
-        data = self.jlink.read_mem(addr, size)
+        c_char_Array = self.jlink.read_mem(addr, size)
 
-        buff.extend([ord(x) for x in data])
+        buff.extend(list(bytes(c_char_Array)))
 
 
 NUM480_flash_algo = {

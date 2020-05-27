@@ -1,4 +1,3 @@
-#coding: utf-8
 """
  mbed CMSIS-DAP debugger
  Copyright (c) 2006-2015 ARM Limited
@@ -40,49 +39,49 @@ class Flash(object):
     def Init(self, addr, clk, func):    # func: 1 - Erase, 2 - Program, 3 - Verify
         res = self.callFunctionAndWait(self.flash['pc_Init'], addr, clk, func)
         
-        if res != 0: print 'Init() error: %i' %res
+        if res != 0: print(f'Init() error: {res}')
 
     def UnInit(self, func):
         res = self.callFunctionAndWait(self.flash['pc_UnInit'], func)
         
-        if res != 0: print 'UnInit() error: %i' %res
+        if res != 0: print(f'UnInit() error: {res}')
 
     def EraseSector(self, addr):
         res = self.callFunctionAndWait(self.flash['pc_EraseSector'], addr)
 
-        if res != 0: print 'EraseSector(0x%08X) error: %i' %(addr, res)
+        if res != 0: print(f'EraseSector({addr:08X}) error: {res}')
 
     def ProgramPage(self, addr, data):
         self.jlink.write_mem(self.flash['begin_data'], data) # 将要烧写的数据传入单片机RAM
 
         res = self.callFunctionAndWait(self.flash['pc_ProgramPage'], addr, len(data), self.flash['begin_data'])
 
-        if res != 0: print 'ProgramPage(0x%08X) error: %i' %(addr, res)
+        if res != 0: print(f'ProgramPage({addr:08X}) error: {res}')
 
     def Verify(self, addr, data):
         self.jlink.write_mem(self.flash['begin_data'], data) # 将要校验的数据传入单片机RAM
 
         res = self.callFunctionAndWait(self.flash['pc_Verify'], addr, len(data), self.flash['begin_data'])
 
-        if res != addr+len(data): print 'Verify(0x%08X) error: %i' %(addr, res)
+        if res != addr+len(data): print(f'Verify({addr:08X}) error: {res}')
 
     def EraseChip(self):
         res = self.callFunctionAndWait(self.flash['pc_EraseChip'])
 
-        if res != 0: print 'EraseChip() error: %i' %res
+        if res != 0: print(f'EraseChip() error: {res}')
 
     def BlankCheck(self, addr, size, value):
         res = self.callFunctionAndWait(self.flash['pc_BlankCheck'], addr, size, value)
 
-        if res != 0: print 'BlankCheck(0x%08X) error: %i' %(addr, res)
+        if res != 0: print(f'BlankCheck({addr:08X}) error: {res}')
 
     def Read(self, addr, size):
         res = self.callFunctionAndWait(self.flash['pc_Read'], addr, size, self.flash['begin_data'])
 
-        if res != addr+size: print 'Read(0x%08X) error: %i' %(addr, res)
+        if res != addr+size: print(f'Read({addr:08X}) error: {res}')
 
     def callFunction(self, pc, r0=None, r1=None, r2=None, r3=None):
-        print '%08X' %pc
+        print(f'{pc:08X}')
         self.jlink.write_reg('pc', pc)
         if r0 is not None: self.jlink.write_reg('r0', r0)
         if r1 is not None: self.jlink.write_reg('r1', r1)

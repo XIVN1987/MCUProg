@@ -1,4 +1,3 @@
-#coding: utf-8
 from .flash import Flash
 
 class STM32F405RG(object):
@@ -35,9 +34,6 @@ class STM32F405RG(object):
         self.flash.UnInit(1)
 
     def chip_write(self, addr, data):
-        if len(data)%self.PAGE_SIZE:
-            data = data + [0xFF] * (self.PAGE_SIZE - len(data)%self.PAGE_SIZE)
-
         self.sect_erase(addr, len(data))
 
         self.flash.Init(0, 0, 2)
@@ -46,9 +42,9 @@ class STM32F405RG(object):
         self.flash.UnInit(2)
 
     def chip_read(self, addr, size, buff):
-        data = self.jlink.read_mem(0x08000000 + addr, size)
+        c_char_Array = self.jlink.read_mem(0x08000000 + addr, size)
 
-        buff.extend([ord(x) for x in data])
+        buff.extend(list(bytes(c_char_Array)))
 
 
 STM32F405RG_flash_algo = {

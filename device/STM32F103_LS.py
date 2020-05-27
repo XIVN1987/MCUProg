@@ -1,4 +1,3 @@
-#coding: utf-8
 import time
 
 FLASH_KR = 0x40022004
@@ -60,18 +59,15 @@ class STM32F103C8(object):
         self.lock()
     
     def chip_write(self, addr, data):
-        if len(data)%self.PAGE_SIZE:
-            data = data + [0xFF] * (self.PAGE_SIZE - len(data)%self.PAGE_SIZE)
-
         self.sect_erase(addr, len(data))
 
         for i in range(0, len(data)//self.PAGE_SIZE):
             self.page_write(0x08000000 + addr + self.PAGE_SIZE * i, data[self.PAGE_SIZE*i : self.PAGE_SIZE*(i+1)])
 
     def chip_read(self, addr, size, buff):
-        data = self.jlink.read_mem(addr, size)
+        c_char_Array = self.jlink.read_mem(addr, size)
 
-        buff.extend([ord(x) for x in data])
+        buff.extend(list(bytes(c_char_Array)))
 
 
 class STM32F103RC(STM32F103C8):

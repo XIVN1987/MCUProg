@@ -1,6 +1,5 @@
-#coding: utf-8
 from .flash import Flash
-import time
+
 
 class MT7687(object):
     CHIP_CORE = 'Cortex-M4'
@@ -23,9 +22,6 @@ class MT7687(object):
         self.flash.UnInit(1)
 
     def chip_write(self, addr, data):
-        if len(data)%self.PAGE_SIZE:
-            data = data + [0xFF] * (self.PAGE_SIZE - len(data)%self.PAGE_SIZE)
-
         self.sect_erase(addr, len(data))
 
         self.flash.Init(0, 0, 2)
@@ -39,9 +35,9 @@ class MT7687(object):
         self.jlink.write_U32(0x8300F050, 0x76371688)
         self.jlink.write_U32(0x8300F050, 0x76371688)
 
-        data = self.jlink.read_mem(0x10000000 + addr, size)
+        c_char_Array = self.jlink.read_mem(0x10000000 + addr, size)
 
-        buff.extend([ord(x) for x in data])
+        buff.extend(list(bytes(c_char_Array)))
 
 
 MT7687_flash_algo = {

@@ -1,4 +1,3 @@
-#coding: utf-8
 from .flash import Flash
 
 
@@ -23,9 +22,6 @@ class RT1050(object):
         self.flash.UnInit(1)
 
     def chip_write(self, addr, data):
-        if len(data)%self.PAGE_SIZE:
-            data = data + [0xFF] * (self.PAGE_SIZE - len(data)%self.PAGE_SIZE)
-
         self.sect_erase(addr, len(data))
 
         self.flash.Init(0, 0, 2)
@@ -35,9 +31,9 @@ class RT1050(object):
         
     def chip_read(self, addr, size, buff):
         self.jlink.go()     # 必须得运行中才能读出
-        data = self.jlink.read_mem(0x60000000 + addr, size)
+        c_char_Array = self.jlink.read_mem(0x60000000 + addr, size)
 
-        buff.extend([ord(x) for x in data])
+        buff.extend(list(bytes(c_char_Array)))
 
 
 RT1050_flash_algo = {

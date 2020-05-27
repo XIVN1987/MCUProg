@@ -1,4 +1,3 @@
-#coding: utf-8
 import time
 
 FLASH_KR = 0x40023C04
@@ -51,7 +50,7 @@ class STM32F405RG(object):
 
     def wait_ready(self):
         while self.jlink.read_U32(FLASH_SR) & FLASH_SR_BUSY:
-            pass
+            time.sleep(0.001)
     
     def sect_erase(self, addr, size):
         self.unlock()
@@ -66,9 +65,6 @@ class STM32F405RG(object):
         self.lock()
 
     def chip_write(self, addr, data):
-        if len(data)%self.PAGE_SIZE:
-            data = data + [0xFF] * (self.PAGE_SIZE - len(data)%self.PAGE_SIZE)
-
         self.sect_erase(addr, len(data))
 
         self.unlock()
@@ -80,6 +76,6 @@ class STM32F405RG(object):
         self.lock()
         
     def chip_read(self, addr, size, buff):
-        data = self.jlink.read_mem(addr, size)
+        c_char_Array = self.jlink.read_mem(addr, size)
 
-        buff.extend([ord(x) for x in data])
+        buff.extend(list(bytes(c_char_Array)))

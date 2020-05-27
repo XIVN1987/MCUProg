@@ -1,4 +1,3 @@
-#coding: utf-8
 import time
 import ctypes
 
@@ -8,7 +7,7 @@ class JLink(object):
         self.jlk = ctypes.cdll.LoadLibrary(dllpath)
 
         err_buf = (ctypes.c_char * 64)()
-        self.jlk.JLINKARM_ExecCommand('Device = %s' %coretype, err_buf, 64)
+        self.jlk.JLINKARM_ExecCommand(f'Device = {coretype}', err_buf, 64)
 
         self.jlk.JLINKARM_TIF_Select(1)
         self.jlk.JLINKARM_SetSpeed(4000)
@@ -27,7 +26,9 @@ class JLink(object):
         return buf[0]
 
     def write_mem(self, addr, data):
-        if type(data) == list: data = ''.join([chr(x) for x in data])
+        if type(data) == list: data = ''.join([chr(x) for x in data]).encode('latin')
+        if type(data) == str:  data = data.encode('latin')
+        
         buf = ctypes.create_string_buffer(data)
         self.jlk.JLINKARM_WriteMem(addr, len(data), buf)
 
@@ -43,17 +44,17 @@ class JLink(object):
             byte.extend([x&0xFF, (x>>8)&0xFF, (x>>16)&0xFF, (x>>24)&0xFF])
         self.write_mem(addr, byte)
 
-    NVIC_AIRCR = 0xE000ED0C
-    NVIC_AIRCR_VECTKEY      = (0x5FA << 16)
-    NVIC_AIRCR_VECTRESET    = (1 << 0)
-    NVIC_AIRCR_SYSRESETREQ  = (1 << 2)
-
     def reset(self, hardware_reset=False):
+        NVIC_AIRCR = 0xE000ED0C
+        NVIC_AIRCR_VECTKEY      = (0x5FA << 16)
+        NVIC_AIRCR_VECTRESET    = (1 << 0)
+        NVIC_AIRCR_SYSRESETREQ  = (1 << 2)
+
         if hardware_reset:
             raise NotImplemented()
         else:
             try:
-                self.write_U32(self.NVIC_AIRCR, self.NVIC_AIRCR_VECTKEY | self.NVIC_AIRCR_SYSRESETREQ)
+                self.write_U32(NVIC_AIRCR, NVIC_AIRCR_VECTKEY | NVIC_AIRCR_SYSRESETREQ)
             except Exception:
                 pass
 
@@ -146,13 +147,13 @@ class JLink(object):
         return self.getState() == self.TARGET_HALTED
 
     def setTargetState(self, state):
-        if state == "PROGRAM":
+        if state == 'PROGRAM':
             self.resetStopOnReset()
             # Write the thumb bit in case the reset handler points to an ARM address
             self.write_reg('xpsr', 0x1000000)
 
     def resetStopOnReset(self):
-        """perform a reset and stop the core on the reset handler"""
+        ''' perform a reset and stop the core on the reset handler '''
         self.halt()
 
         demcr = self.read_U32(self.DEMCR)
