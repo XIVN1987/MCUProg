@@ -7,7 +7,7 @@ class JLink(object):
         self.jlk = ctypes.cdll.LoadLibrary(dllpath)
 
         err_buf = (ctypes.c_char * 64)()
-        self.jlk.JLINKARM_ExecCommand(f'Device = {coretype}', err_buf, 64)
+        self.jlk.JLINKARM_ExecCommand(f'Device = {coretype}'.encode('latin-1'), err_buf, 64)
 
         self.jlk.JLINKARM_TIF_Select(1)
         self.jlk.JLINKARM_SetSpeed(4000)
