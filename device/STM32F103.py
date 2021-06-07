@@ -7,12 +7,12 @@ class STM32F103C8(object):
     SECT_SIZE = 1024 * 1
     CHIP_SIZE = 1024 * 64
 
-    def __init__(self, jlink):
+    def __init__(self, xlink):
         super(STM32F103C8, self).__init__()
         
-        self.jlink = jlink
+        self.xlink = xlink
 
-        self.flash = Flash(self.jlink, STM32F103C8_flash_algo)
+        self.flash = Flash(self.xlink, STM32F103C8_flash_algo)
 
     def sect_erase(self, addr, size):
         self.flash.Init(0, 0, 1)
@@ -29,7 +29,7 @@ class STM32F103C8(object):
         self.flash.UnInit(2)
 
     def chip_read(self, addr, size, buff):
-        c_char_Array = self.jlink.read_mem(0x08000000 + addr, size)
+        c_char_Array = self.xlink.read_mem(0x08000000 + addr, size)
 
         buff.extend(list(bytes(c_char_Array)))
 
@@ -39,10 +39,10 @@ class STM32F103RC(STM32F103C8):
     SECT_SIZE = 1024 * 2
     CHIP_SIZE = 1024 * 256
 
-    def __init__(self, jlink):
-        super(STM32F103RC, self).__init__(jlink)
+    def __init__(self, xlink):
+        super(STM32F103RC, self).__init__(xlink)
 
-        self.flash = Flash(self.jlink, STM32F103RC_flash_algo)
+        self.flash = Flash(self.xlink, STM32F103RC_flash_algo)
 
 
 STM32F103C8_flash_algo = {

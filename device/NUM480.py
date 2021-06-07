@@ -7,12 +7,12 @@ class NUM480(object):
     SECT_SIZE = 1024 * 4
     CHIP_SIZE = 0x080000  # 512K
 
-    def __init__(self, jlink):
+    def __init__(self, xlink):
         super(NUM480, self).__init__()
         
-        self.jlink  = jlink
+        self.xlink = xlink
 
-        self.flash = Flash(self.jlink, NUM480_flash_algo)
+        self.flash = Flash(self.xlink, NUM480_flash_algo)
 
     def sect_erase(self, addr, size):
         self.flash.Init(0, 0, 1)
@@ -29,7 +29,7 @@ class NUM480(object):
         self.flash.UnInit(2)
 
     def chip_read(self, addr, size, buff):
-        c_char_Array = self.jlink.read_mem(addr, size)
+        c_char_Array = self.xlink.read_mem(addr, size)
 
         buff.extend(list(bytes(c_char_Array)))
 

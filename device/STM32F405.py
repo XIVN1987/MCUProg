@@ -20,12 +20,12 @@ class STM32F405RG(object):
             elif sect < 128*1024: sect +=  64*1024
             else:                 sect += 128*1024
 
-    def __init__(self, jlink):
+    def __init__(self, xlink):
         super(STM32F405RG, self).__init__()
         
-        self.jlink  = jlink
+        self.xlink = xlink
 
-        self.flash = Flash(self.jlink, STM32F405RG_flash_algo)
+        self.flash = Flash(self.xlink, STM32F405RG_flash_algo)
 
     def sect_erase(self, addr, size):
         self.flash.Init(0, 0, 1)
@@ -42,7 +42,7 @@ class STM32F405RG(object):
         self.flash.UnInit(2)
 
     def chip_read(self, addr, size, buff):
-        c_char_Array = self.jlink.read_mem(0x08000000 + addr, size)
+        c_char_Array = self.xlink.read_mem(0x08000000 + addr, size)
 
         buff.extend(list(bytes(c_char_Array)))
 

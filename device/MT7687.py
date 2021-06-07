@@ -8,12 +8,12 @@ class MT7687(object):
     SECT_SIZE = 1024 * 4
     CHIP_SIZE = 0x400000    # 4MByte
 
-    def __init__(self, jlink):
+    def __init__(self, xlink):
         super(MT7687, self).__init__()
         
-        self.jlink  = jlink
+        self.xlink = xlink
 
-        self.flash = Flash(self.jlink, MT7687_flash_algo)
+        self.flash = Flash(self.xlink, MT7687_flash_algo)
 
     def sect_erase(self, addr, size):
         self.flash.Init(0, 0, 1)
@@ -31,11 +31,11 @@ class MT7687(object):
 
     def chip_read(self, addr, size, buff):
         # 必须按一下复位键，然后执行以下三条语句，才能从内存空间读到值
-        self.jlink.write_U32(0x8300F050, 0x76371688)
-        self.jlink.write_U32(0x8300F050, 0x76371688)
-        self.jlink.write_U32(0x8300F050, 0x76371688)
+        self.xlink.write_U32(0x8300F050, 0x76371688)
+        self.xlink.write_U32(0x8300F050, 0x76371688)
+        self.xlink.write_U32(0x8300F050, 0x76371688)
 
-        c_char_Array = self.jlink.read_mem(0x10000000 + addr, size)
+        c_char_Array = self.xlink.read_mem(0x10000000 + addr, size)
 
         buff.extend(list(bytes(c_char_Array)))
 

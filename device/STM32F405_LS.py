@@ -36,46 +36,46 @@ class STM32F405RG(object):
         elif addr < 1024 * 128:  return (addr - 1024 *  64) // (1024 *  64) + 4
         else:                    return (addr - 1024 * 128) // (1024 * 128) + 5
 
-    def __init__(self, jlink):
+    def __init__(self, xlink):
         super(STM32F405RG, self).__init__()
         
-        self.jlink  = jlink
+        self.xlink = xlink
 
     def unlock(self):
-        self.jlink.write_U32(FLASH_KR, FLASH_KR_KEY1)
-        self.jlink.write_U32(FLASH_KR, FLASH_KR_KEY2)
+        self.xlink.write_U32(FLASH_KR, FLASH_KR_KEY1)
+        self.xlink.write_U32(FLASH_KR, FLASH_KR_KEY2)
 
     def lock(self):
-        self.jlink.write_U32(FLASH_CR, self.jlink.read_U32(FLASH_CR) | FLASH_CR_LOCK)
+        self.xlink.write_U32(FLASH_CR, self.xlink.read_U32(FLASH_CR) | FLASH_CR_LOCK)
 
     def wait_ready(self):
-        while self.jlink.read_U32(FLASH_SR) & FLASH_SR_BUSY:
+        while self.xlink.read_U32(FLASH_SR) & FLASH_SR_BUSY:
             time.sleep(0.001)
     
     def sect_erase(self, addr, size):
         self.unlock()
-        self.jlink.write_U32(FLASH_CR, self.jlink.read_U32(FLASH_CR) & FLASH_CR_PSIZE_MASK)
-        self.jlink.write_U32(FLASH_CR, self.jlink.read_U32(FLASH_CR) | FLASH_CR_PSIZE_WORD)
+        self.xlink.write_U32(FLASH_CR, self.xlink.read_U32(FLASH_CR) & FLASH_CR_PSIZE_MASK)
+        self.xlink.write_U32(FLASH_CR, self.xlink.read_U32(FLASH_CR) | FLASH_CR_PSIZE_WORD)
         for i in range(self.addr2sect(addr), self.addr2sect(addr + size)):
-            self.jlink.write_U32(FLASH_CR, self.jlink.read_U32(FLASH_CR) & FLASH_CR_SECT_MASK)
-            self.jlink.write_U32(FLASH_CR, self.jlink.read_U32(FLASH_CR) | FLASH_CR_SERASE | (i << 3))
-            self.jlink.write_U32(FLASH_CR, self.jlink.read_U32(FLASH_CR) | FLASH_CR_ESTART)
+            self.xlink.write_U32(FLASH_CR, self.xlink.read_U32(FLASH_CR) & FLASH_CR_SECT_MASK)
+            self.xlink.write_U32(FLASH_CR, self.xlink.read_U32(FLASH_CR) | FLASH_CR_SERASE | (i << 3))
+            self.xlink.write_U32(FLASH_CR, self.xlink.read_U32(FLASH_CR) | FLASH_CR_ESTART)
             self.wait_ready()
-        self.jlink.write_U32(FLASH_CR, self.jlink.read_U32(FLASH_CR) &~FLASH_CR_SERASE)
+        self.xlink.write_U32(FLASH_CR, self.xlink.read_U32(FLASH_CR) &~FLASH_CR_SERASE)
         self.lock()
 
     def chip_write(self, addr, data):
         self.sect_erase(addr, len(data))
 
         self.unlock()
-        self.jlink.write_U32(FLASH_CR, self.jlink.read_U32(FLASH_CR) | FLASH_CR_WRITE)
+        self.xlink.write_U32(FLASH_CR, self.xlink.read_U32(FLASH_CR) | FLASH_CR_WRITE)
         for i in range(len(data)//4):
-            self.jlink.write_U32(0x08000000 + addr + i*4, data[i*4] | (data[i*4+1] << 8) | (data[i*4+2] << 16) | (data[i*4+3] << 24))
+            self.xlink.write_U32(0x08000000 + addr + i*4, data[i*4] | (data[i*4+1] << 8) | (data[i*4+2] << 16) | (data[i*4+3] << 24))
             self.wait_ready()
-        self.jlink.write_U32(FLASH_CR, self.jlink.read_U32(FLASH_CR) &~FLASH_CR_WRITE)
+        self.xlink.write_U32(FLASH_CR, self.xlink.read_U32(FLASH_CR) &~FLASH_CR_WRITE)
         self.lock()
         
     def chip_read(self, addr, size, buff):
-        c_char_Array = self.jlink.read_mem(addr, size)
+        c_char_Array = self.xlink.read_mem(addr, size)
 
         buff.extend(list(bytes(c_char_Array)))

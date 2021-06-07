@@ -23,39 +23,39 @@ class STM32F103C8(object):
     SECT_SIZE = 1024 * 1
     CHIP_SIZE = 1024 * 64
 
-    def __init__(self, jlink):
+    def __init__(self, xlink):
         super(STM32F103C8, self).__init__()
         
-        self.jlink  = jlink
+        self.xlink = xlink
 
     def unlock(self):
-        self.jlink.write_U32(FLASH_KR, FLASH_KR_KEY1)
-        self.jlink.write_U32(FLASH_KR, FLASH_KR_KEY2)
+        self.xlink.write_U32(FLASH_KR, FLASH_KR_KEY1)
+        self.xlink.write_U32(FLASH_KR, FLASH_KR_KEY2)
 
     def lock(self):
-        self.jlink.write_U32(FLASH_CR, self.jlink.read_U32(FLASH_CR) | FLASH_CR_LOCK)
+        self.xlink.write_U32(FLASH_CR, self.xlink.read_U32(FLASH_CR) | FLASH_CR_LOCK)
 
     def wait_ready(self):
-        while self.jlink.read_U32(FLASH_SR) & FLASH_SR_BUSY:
+        while self.xlink.read_U32(FLASH_SR) & FLASH_SR_BUSY:
             time.sleep(0.001)
     
     def sect_erase(self, addr, size):
         self.unlock()
-        self.jlink.write_U32(FLASH_CR, self.jlink.read_U32(FLASH_CR) | FLASH_CR_SERASE)
+        self.xlink.write_U32(FLASH_CR, self.xlink.read_U32(FLASH_CR) | FLASH_CR_SERASE)
         for i in range(0, (size + self.SECT_SIZE - 1) // self.SECT_SIZE):
-            self.jlink.write_U32(FLASH_AR, 0x08000000 + addr + self.SECT_SIZE * i)
-            self.jlink.write_U32(FLASH_CR, self.jlink.read_U32(FLASH_CR) | FLASH_CR_ESTART)
+            self.xlink.write_U32(FLASH_AR, 0x08000000 + addr + self.SECT_SIZE * i)
+            self.xlink.write_U32(FLASH_CR, self.xlink.read_U32(FLASH_CR) | FLASH_CR_ESTART)
             self.wait_ready()
-        self.jlink.write_U32(FLASH_CR, self.jlink.read_U32(FLASH_CR) &~FLASH_CR_SERASE)
+        self.xlink.write_U32(FLASH_CR, self.xlink.read_U32(FLASH_CR) &~FLASH_CR_SERASE)
         self.lock()
 
     def page_write(self, addr, data):
         self.unlock()
-        self.jlink.write_U32(FLASH_CR, self.jlink.read_U32(FLASH_CR) | FLASH_CR_PWRITE)
+        self.xlink.write_U32(FLASH_CR, self.xlink.read_U32(FLASH_CR) | FLASH_CR_PWRITE)
         for i in range(self.PAGE_SIZE//2):
-            self.jlink.write_U16(addr + i*2, data[i*2] | (data[i*2+1] << 8))
+            self.xlink.write_U16(addr + i*2, data[i*2] | (data[i*2+1] << 8))
         self.wait_ready()
-        self.jlink.write_U32(FLASH_CR, self.jlink.read_U32(FLASH_CR) &~FLASH_CR_PWRITE)
+        self.xlink.write_U32(FLASH_CR, self.xlink.read_U32(FLASH_CR) &~FLASH_CR_PWRITE)
         self.lock()
     
     def chip_write(self, addr, data):
@@ -65,7 +65,7 @@ class STM32F103C8(object):
             self.page_write(0x08000000 + addr + self.PAGE_SIZE * i, data[self.PAGE_SIZE*i : self.PAGE_SIZE*(i+1)])
 
     def chip_read(self, addr, size, buff):
-        c_char_Array = self.jlink.read_mem(addr, size)
+        c_char_Array = self.xlink.read_mem(addr, size)
 
         buff.extend(list(bytes(c_char_Array)))
 

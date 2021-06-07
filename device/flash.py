@@ -21,20 +21,20 @@ analyzer = (
 
 
 class Flash(object):
-    def __init__(self, jlink, flash):
-        self.jlink = jlink
+    def __init__(self, xlink, flash):
+        self.xlink = xlink
 
         self.flash = flash
         
         # perform a reset and stop the core on the reset handler
-        self.jlink.setTargetState("PROGRAM")
+        self.xlink.setTargetState("PROGRAM")
 
-        self.jlink.write_reg('r9', self.flash['static_base'])
-        self.jlink.write_reg('sp', self.flash['begin_stack'])
+        self.xlink.write_reg('r9', self.flash['static_base'])
+        self.xlink.write_reg('sp', self.flash['begin_stack'])
 
         # 将Flash算法下载到RAM
-        self.jlink.write_mem_U32(self.flash['load_address'], self.flash['instructions'])
-        if self.flash['analyzer_supported']: self.jlink.write_mem_U32(self.flash['analyzer_address'], analyzer)
+        self.xlink.write_mem_U32(self.flash['load_address'], self.flash['instructions'])
+        if self.flash['analyzer_supported']: self.xlink.write_mem_U32(self.flash['analyzer_address'], analyzer)
     
     def Init(self, addr, clk, func):    # func: 1 - Erase, 2 - Program, 3 - Verify
         res = self.callFunctionAndWait(self.flash['pc_Init'], addr, clk, func)
@@ -52,14 +52,14 @@ class Flash(object):
         if res != 0: print(f'EraseSector({addr:08X}) error: {res}')
 
     def ProgramPage(self, addr, data):
-        self.jlink.write_mem(self.flash['begin_data'], data) # 将要烧写的数据传入单片机RAM
+        self.xlink.write_mem(self.flash['begin_data'], data) # 将要烧写的数据传入单片机RAM
 
         res = self.callFunctionAndWait(self.flash['pc_ProgramPage'], addr, len(data), self.flash['begin_data'])
 
         if res != 0: print(f'ProgramPage({addr:08X}) error: {res}')
 
     def Verify(self, addr, data):
-        self.jlink.write_mem(self.flash['begin_data'], data) # 将要校验的数据传入单片机RAM
+        self.xlink.write_mem(self.flash['begin_data'], data) # 将要校验的数据传入单片机RAM
 
         res = self.callFunctionAndWait(self.flash['pc_Verify'], addr, len(data), self.flash['begin_data'])
 
@@ -82,19 +82,19 @@ class Flash(object):
 
     def callFunction(self, pc, r0=None, r1=None, r2=None, r3=None):
         print(f'{pc:08X}')
-        self.jlink.write_reg('pc', pc)
-        if r0 is not None: self.jlink.write_reg('r0', r0)
-        if r1 is not None: self.jlink.write_reg('r1', r1)
-        if r2 is not None: self.jlink.write_reg('r2', r2)
-        if r3 is not None: self.jlink.write_reg('r3', r3)
-        self.jlink.write_reg('lr', self.flash['load_address'] + 1)
+        self.xlink.write_reg('pc', pc)
+        if r0 is not None: self.xlink.write_reg('r0', r0)
+        if r1 is not None: self.xlink.write_reg('r1', r1)
+        if r2 is not None: self.xlink.write_reg('r2', r2)
+        if r3 is not None: self.xlink.write_reg('r3', r3)
+        self.xlink.write_reg('lr', self.flash['load_address'] + 1)
         
-        self.jlink.go()        
+        self.xlink.go()        
 
     def callFunctionAndWait(self, pc, r0=None, r1=None, r2=None, r3=None):
         self.callFunction(pc, r0, r1, r2, r3)
         
         # Wait until the breakpoint is hit
-        while(self.jlink.getState() == self.jlink.TARGET_RUNNING): pass
+        while self.xlink.running(): pass
 
-        return self.jlink.read_reg('r0')
+        return self.xlink.read_reg('r0')

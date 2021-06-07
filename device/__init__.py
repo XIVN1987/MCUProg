@@ -6,7 +6,6 @@ from . import STM32F405
 from . import STM32F405_LS
 from . import NUM480
 from . import MT7687
-from . import RT1050
 
 Devices = collections.OrderedDict([
     ('STM32F103C8',    STM32F103.STM32F103C8),
@@ -17,5 +16,4 @@ Devices = collections.OrderedDict([
     ('STM32F405RG-LS', STM32F405_LS.STM32F405RG),
     ('NUM480',         NUM480.NUM480),
     ('MT7687',         MT7687.MT7687),
-    ('RT1050',         RT1050.RT1050),
 ])

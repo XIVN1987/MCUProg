@@ -9,6 +9,7 @@ from PyQt5.QtCore import pyqtSlot, pyqtSignal, QThread
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QFileDialog
 
 import jlink
+import xlink
 import device
 
 
@@ -30,6 +31,11 @@ class MCUProg(QWidget):
 
         self.initSetting()
 
+        self.tmrDAP = QtCore.QTimer()
+        self.tmrDAP.setInterval(1000)
+        self.tmrDAP.timeout.connect(self.on_tmrDAP_timeout)
+        self.tmrDAP.start()
+
     def initSetting(self):
         if not os.path.exists('setting.ini'):
             open('setting.ini', 'w', encoding='utf-8')
@@ -45,29 +51,62 @@ class MCUProg(QWidget):
             self.conf.set('globals', 'dllpath', '')
             self.conf.set('globals', 'hexpath', '[]')
         
-        self.linDLL.setText(self.conf.get('globals', 'dllpath'))
+        self.cmbDLL.addItem(self.conf.get('globals', 'dllpath'))
         self.cmbHEX.addItems(eval(self.conf.get('globals', 'hexpath')))
 
         self.cmbMCU.addItems(device.Devices.keys())
         self.cmbMCU.setCurrentIndex(self.cmbMCU.findText(self.conf.get('globals', 'mcu')))
 
+    def on_tmrDAP_timeout(self):
+        try:
+            from pyocd.probe import aggregator
+            self.daplinks = aggregator.DebugProbeAggregator.get_all_connected_probes()
+            if len(self.daplinks) != self.cmbDLL.count() - 1:
+                for i in range(1, self.cmbDLL.count()):
+                    self.cmbDLL.removeItem(i)
+                for i, daplink in enumerate(self.daplinks):
+                    self.cmbDLL.addItem(daplink.product_name)
+        except Exception as e:
+            pass
+
+    def connect(self):
+        if self.cmbDLL.currentIndex() == 0:
+            self.xlk = xlink.XLink(jlink.JLink(self.cmbDLL.currentText(), device.Devices[self.cmbMCU.currentText()].CHIP_CORE))
+
+        else:
+            from pyocd.coresight import dap, ap, cortex_m
+            daplink = self.daplinks[self.cmbDLL.currentIndex() - 1]
+            daplink.open()
+
+            _dp = dap.DebugPort(daplink, None)
+            _dp.init()
+            _dp.power_up_debug()
+
+            _ap = ap.AHB_AP(_dp, 0)
+            _ap.init()
+
+            self.xlk = xlink.XLink(cortex_m.CortexM(None, _ap))
+
+        self.dev = device.Devices[self.cmbMCU.currentText()](self.xlk)
+
     @pyqtSlot()
     def on_btnErase_clicked(self):
-        self.jlk = jlink.JLink(self.linDLL.text(), device.Devices[self.cmbMCU.currentText()].CHIP_CORE)
-        self.dev = device.Devices[self.cmbMCU.currentText()](self.jlk)
+        self.connect()
+        
         self.dev.sect_erase(self.addr, self.size)
         QMessageBox.information(self, u'擦除完成', u'        芯片擦除完成        ', QMessageBox.Yes)
 
     @pyqtSlot()
     def on_btnWrite_clicked(self):
-        if self.cmbHEX.currentText().endswith('.hex'): data = parseHex(self.cmbHEX.currentText())
-        else:                                          data = open(self.cmbHEX.currentText(), 'rb').read()
-
-        self.jlk = jlink.JLink(self.linDLL.text(), device.Devices[self.cmbMCU.currentText()].CHIP_CORE)
-        self.dev = device.Devices[self.cmbMCU.currentText()](self.jlk)
+        self.connect()
 
         self.setEnabled(False)
         self.prgInfo.setVisible(True)
+
+        if self.cmbHEX.currentText().endswith('.hex'):
+            data = parseHex(self.cmbHEX.currentText())
+        else:
+            data = open(self.cmbHEX.currentText(), 'rb').read()
 
         if len(data)%self.dev.PAGE_SIZE:
             data += b'\xFF' * (self.dev.PAGE_SIZE - len(data)%self.dev.PAGE_SIZE)
@@ -79,15 +118,14 @@ class MCUProg(QWidget):
     def on_btnWrite_finished(self):
         QMessageBox.information(self, u'烧写完成', u'        程序烧写完成        ', QMessageBox.Yes)
 
-        self.jlk.reset()
+        self.xlk.reset()
 
         self.setEnabled(True)
         self.prgInfo.setVisible(False)
 
     @pyqtSlot()
     def on_btnRead_clicked(self):
-        self.jlk = jlink.JLink(self.linDLL.text(), device.Devices[self.cmbMCU.currentText()].CHIP_CORE)
-        self.dev = device.Devices[self.cmbMCU.currentText()](self.jlk)
+        self.connect()
 
         self.setEnabled(False)
         self.prgInfo.setVisible(True)
@@ -103,16 +141,18 @@ class MCUProg(QWidget):
             with open(binpath, 'wb') as f:
                 f.write(bytes(self.buff))
 
-        self.jlk.reset()
+        self.xlk.reset()
 
         self.setEnabled(True)
         self.prgInfo.setVisible(False)
 
     @property
-    def addr(self): return int(self.cmbAddr.currentText().split()[0]) * 1024
+    def addr(self):
+        return int(self.cmbAddr.currentText().split()[0]) * 1024
 
     @property
-    def size(self): return int(self.cmbSize.currentText().split()[0]) * 1024
+    def size(self):
+        return int(self.cmbSize.currentText().split()[0]) * 1024
 
     @pyqtSlot(str)
     def on_cmbMCU_currentIndexChanged(self, str):
@@ -131,9 +171,9 @@ class MCUProg(QWidget):
 
     @pyqtSlot()
     def on_btnDLL_clicked(self):
-        dllpath, filter = QFileDialog.getOpenFileName(caption=u'JLink_x64.dll路径', filter=u'动态链接库 (*.dll)', directory=self.linDLL.text())
+        dllpath, filter = QFileDialog.getOpenFileName(caption=u'JLink_x64.dll路径', filter=u'动态链接库 (*.dll)', directory=self.cmbDLL.itemText(0))
         if dllpath:
-            self.linDLL.setText(dllpath)
+            self.cmbDLL.setItemText(0, dllpath)
 
     @pyqtSlot()
     def on_btnHEX_clicked(self):
@@ -146,7 +186,7 @@ class MCUProg(QWidget):
         self.conf.set('globals', 'mcu',  self.cmbMCU.currentText())
         self.conf.set('globals', 'addr', self.cmbAddr.currentText())
         self.conf.set('globals', 'size', self.cmbSize.currentText())
-        self.conf.set('globals', 'dllpath', self.linDLL.text())
+        self.conf.set('globals', 'dllpath', self.cmbDLL.itemText(0))
 
         hexpath = [self.cmbHEX.currentText()] + [self.cmbHEX.itemText(i) for i in range(self.cmbHEX.count())]
         self.conf.set('globals', 'hexpath', repr(list(collections.OrderedDict.fromkeys(hexpath))))    # 保留顺序去重    
