@@ -48,16 +48,28 @@ class MCUProg(QWidget):
             self.conf.set('globals', 'mcu', 'NUM480')
             self.conf.set('globals', 'addr', '0 K')
             self.conf.set('globals', 'size', '4 K')
+            self.conf.set('globals', 'link', '')
             self.conf.set('globals', 'dllpath', '')
             self.conf.set('globals', 'hexpath', '[]')
-        
-        self.cmbDLL.addItem(self.conf.get('globals', 'dllpath'))
-        self.cmbHEX.addItems(eval(self.conf.get('globals', 'hexpath')))
 
         self.cmbMCU.addItems(device.Devices.keys())
         self.cmbMCU.setCurrentIndex(self.cmbMCU.findText(self.conf.get('globals', 'mcu')))
 
+        self.cmbAddr.setCurrentIndex(self.cmbAddr.findText(self.conf.get('globals', 'addr')))
+        self.cmbSize.setCurrentIndex(self.cmbSize.findText(self.conf.get('globals', 'size')))
+        
+        self.cmbDLL.addItem(self.conf.get('globals', 'dllpath'))
+        self.on_tmrDAP_timeout()    # add DAPLink
+
+        index = self.cmbDLL.findText(self.conf.get('globals', 'link'))
+        self.cmbDLL.setCurrentIndex(index if index != -1 else 0)
+
+        self.cmbHEX.addItems(eval(self.conf.get('globals', 'hexpath')))
+    
     def on_tmrDAP_timeout(self):
+        if not self.isEnabled():    # link working
+            return
+
         try:
             from pyocd.probe import aggregator
             self.daplinks = aggregator.DebugProbeAggregator.get_all_connected_probes()
@@ -70,78 +82,99 @@ class MCUProg(QWidget):
             pass
 
     def connect(self):
-        if self.cmbDLL.currentIndex() == 0:
-            self.xlk = xlink.XLink(jlink.JLink(self.cmbDLL.currentText(), device.Devices[self.cmbMCU.currentText()].CHIP_CORE))
+        try:
+            if self.cmbDLL.currentIndex() == 0:
+                self.xlk = xlink.XLink(jlink.JLink(self.cmbDLL.currentText(), device.Devices[self.cmbMCU.currentText()].CHIP_CORE))
 
-        else:
-            from pyocd.coresight import dap, ap, cortex_m
-            daplink = self.daplinks[self.cmbDLL.currentIndex() - 1]
-            daplink.open()
+            else:
+                from pyocd.coresight import dap, ap, cortex_m
+                daplink = self.daplinks[self.cmbDLL.currentIndex() - 1]
+                daplink.open()
 
-            _dp = dap.DebugPort(daplink, None)
-            _dp.init()
-            _dp.power_up_debug()
+                _dp = dap.DebugPort(daplink, None)
+                _dp.init()
+                _dp.power_up_debug()
 
-            _ap = ap.AHB_AP(_dp, 0)
-            _ap.init()
+                _ap = ap.AHB_AP(_dp, 0)
+                _ap.init()
 
-            self.xlk = xlink.XLink(cortex_m.CortexM(None, _ap))
+                self.xlk = xlink.XLink(cortex_m.CortexM(None, _ap))
 
-        self.dev = device.Devices[self.cmbMCU.currentText()](self.xlk)
+            self.dev = device.Devices[self.cmbMCU.currentText()](self.xlk)
+
+        except Exception as e:
+            QMessageBox.critical(self, '连接失败', str(e), QMessageBox.Yes)
+
+            return False
+
+        return True
 
     @pyqtSlot()
     def on_btnErase_clicked(self):
-        self.connect()
+        if self.connect():
+            self.setEnabled(False)
+            self.prgInfo.setVisible(True)
+
+            self.threadErase = ThreadAsync(self.dev.sect_erase, self.addr, self.size)
+            self.threadErase.taskFinished.connect(self.on_btnErase_finished)
+            self.threadErase.start()
         
-        self.dev.sect_erase(self.addr, self.size)
-        QMessageBox.information(self, u'擦除完成', u'        芯片擦除完成        ', QMessageBox.Yes)
+    def on_btnErase_finished(self):
+        QMessageBox.information(self, '擦除完成', '        芯片擦除完成        ', QMessageBox.Yes)
+
+        self.xlk.reset()
+        self.xlk.close()
+
+        self.setEnabled(True)
+        self.prgInfo.setVisible(False)
 
     @pyqtSlot()
     def on_btnWrite_clicked(self):
-        self.connect()
+        if self.connect():
+            self.setEnabled(False)
+            self.prgInfo.setVisible(True)
 
-        self.setEnabled(False)
-        self.prgInfo.setVisible(True)
+            if self.cmbHEX.currentText().endswith('.hex'):
+                data = parseHex(self.cmbHEX.currentText())
+            else:
+                data = open(self.cmbHEX.currentText(), 'rb').read()
 
-        if self.cmbHEX.currentText().endswith('.hex'):
-            data = parseHex(self.cmbHEX.currentText())
-        else:
-            data = open(self.cmbHEX.currentText(), 'rb').read()
-
-        if len(data)%self.dev.PAGE_SIZE:
-            data += b'\xFF' * (self.dev.PAGE_SIZE - len(data)%self.dev.PAGE_SIZE)
-        
-        self.threadWrite = ThreadAsync(self.dev.chip_write, self.addr, data)
-        self.threadWrite.taskFinished.connect(self.on_btnWrite_finished)
-        self.threadWrite.start()
+            if len(data)%self.dev.PAGE_SIZE:
+                data += b'\xFF' * (self.dev.PAGE_SIZE - len(data)%self.dev.PAGE_SIZE)
+            
+            self.threadWrite = ThreadAsync(self.dev.chip_write, self.addr, data)
+            self.threadWrite.taskFinished.connect(self.on_btnWrite_finished)
+            self.threadWrite.start()
 
     def on_btnWrite_finished(self):
-        QMessageBox.information(self, u'烧写完成', u'        程序烧写完成        ', QMessageBox.Yes)
+        QMessageBox.information(self, '烧写完成', '        程序烧写完成        ', QMessageBox.Yes)
 
         self.xlk.reset()
+        self.xlk.close()
 
         self.setEnabled(True)
         self.prgInfo.setVisible(False)
 
     @pyqtSlot()
     def on_btnRead_clicked(self):
-        self.connect()
+        if self.connect():
+            self.setEnabled(False)
+            self.prgInfo.setVisible(True)
 
-        self.setEnabled(False)
-        self.prgInfo.setVisible(True)
+            self.buff = []      # bytes 无法 extend，因此用 list
 
-        self.buff = []      # bytes 无法 extend，因此用 list
-        self.threadRead = ThreadAsync(self.dev.chip_read, self.addr, self.size, self.buff)
-        self.threadRead.taskFinished.connect(self.on_btnRead_finished)
-        self.threadRead.start()
+            self.threadRead = ThreadAsync(self.dev.chip_read, self.addr, self.size, self.buff)
+            self.threadRead.taskFinished.connect(self.on_btnRead_finished)
+            self.threadRead.start()
 
     def on_btnRead_finished(self):
-        binpath, filter = QFileDialog.getSaveFileName(caption=u'将读取到的数据保存到文件', filter=u'程序文件 (*.bin)')
+        binpath, filter = QFileDialog.getSaveFileName(caption='将读取到的数据保存到文件', filter='程序文件 (*.bin)')
         if binpath:
             with open(binpath, 'wb') as f:
                 f.write(bytes(self.buff))
 
         self.xlk.reset()
+        self.xlk.close()
 
         self.setEnabled(True)
         self.prgInfo.setVisible(False)
@@ -171,13 +204,13 @@ class MCUProg(QWidget):
 
     @pyqtSlot()
     def on_btnDLL_clicked(self):
-        dllpath, filter = QFileDialog.getOpenFileName(caption=u'JLink_x64.dll路径', filter=u'动态链接库 (*.dll)', directory=self.cmbDLL.itemText(0))
+        dllpath, filter = QFileDialog.getOpenFileName(caption='JLink_x64.dll路径', filter='动态链接库 (*.dll)', directory=self.cmbDLL.itemText(0))
         if dllpath:
             self.cmbDLL.setItemText(0, dllpath)
 
     @pyqtSlot()
     def on_btnHEX_clicked(self):
-        hexpath, filter = QFileDialog.getOpenFileName(caption=u'程序文件路径', filter=u'程序文件 (*.bin *.hex)', directory=self.cmbHEX.currentText())
+        hexpath, filter = QFileDialog.getOpenFileName(caption='程序文件路径', filter='程序文件 (*.bin *.hex)', directory=self.cmbHEX.currentText())
         if hexpath:
             self.cmbHEX.insertItem(0, hexpath)
             self.cmbHEX.setCurrentIndex(0)
@@ -186,6 +219,7 @@ class MCUProg(QWidget):
         self.conf.set('globals', 'mcu',  self.cmbMCU.currentText())
         self.conf.set('globals', 'addr', self.cmbAddr.currentText())
         self.conf.set('globals', 'size', self.cmbSize.currentText())
+        self.conf.set('globals', 'link', self.cmbDLL.currentText())
         self.conf.set('globals', 'dllpath', self.cmbDLL.itemText(0))
 
         hexpath = [self.cmbHEX.currentText()] + [self.cmbHEX.itemText(i) for i in range(self.cmbHEX.count())]

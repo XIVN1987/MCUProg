@@ -17,6 +17,12 @@ class XLink(object):
         else:
             self.xlk.ap.dp.link.open()
 
+    def close(self, mcucore):
+        if isinstance(self.xlk, jlink.JLink):
+            pass
+        else:
+            self.xlk.ap.dp.link.close()
+
     def write_U8(self, addr, val):
         if isinstance(self.xlk, jlink.JLink):
             self.xlk.write_U8(addr, val)
