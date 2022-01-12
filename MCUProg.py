@@ -13,6 +13,9 @@ import xlink
 import device
 
 
+os.environ['PATH'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'libusb-1.0.24/MinGW64/dll') + os.pathsep + os.environ['PATH']
+
+
 '''
 from MCUProg_UI import Ui_MCUProg
 class MCUProg(QWidget, Ui_MCUProg):
