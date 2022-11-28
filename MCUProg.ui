@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>XIVN1987 单片机编程器</string>
+   <string>单片机编程器</string>
   </property>
   <layout class="QVBoxLayout" name="vLayout">
    <property name="spacing">
