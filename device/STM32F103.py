@@ -70,9 +70,9 @@ STM32F103C8_flash_algo = {
     'pc_BlankCheck'      : 0x12000001F,
     'pc_Read'            : 0x12000001F,
     
-    'static_base'        : 0x20000400,
-    'begin_data'         : 0x20000800,
-    'begin_stack'        : 0x20001000,
+    'static_base'        : 0x20000148,
+    'begin_data'         : 0x2000014C,
+    'begin_stack'        : 0x2000094C,
 
     'analyzer_supported' : False,
 
@@ -119,9 +119,9 @@ STM32F103RC_flash_algo = {
     'pc_BlankCheck'      : 0x12000001F,
     'pc_Read'            : 0x12000001F,
     
-    'static_base'        : 0x20000400,
-    'begin_data'         : 0x20000800,
-    'begin_stack'        : 0x20001000,
+    'static_base'        : 0x20000148,
+    'begin_data'         : 0x2000014C,
+    'begin_stack'        : 0x2000094C,
 
     'analyzer_supported' : False,
 

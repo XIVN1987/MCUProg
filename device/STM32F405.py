@@ -73,9 +73,9 @@ STM32F405RG_flash_algo = {
     'pc_BlankCheck'      : 0x12000001F,
     'pc_Read'            : 0x12000001F,
     
-    'static_base'        : 0x20000400,
-    'begin_data'         : 0x20000800,
-    'begin_stack'        : 0x20001000,
+    'static_base'        : 0x20000164,
+    'begin_data'         : 0x20000168,
+    'begin_stack'        : 0x20000968,
 
     'analyzer_supported' : False,
 

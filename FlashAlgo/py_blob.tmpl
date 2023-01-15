@@ -19,9 +19,9 @@ flash_algo = {
     'pc_BlankCheck'      : {{'0x%08X' %(entry + header_size + algo.symbols['BlankCheck'])}},
     'pc_Read'            : {{'0x%08X' %(entry + header_size + algo.symbols['Read'])}},
     
-    'static_base'        : {{'0x%08X' %(entry + (algo.ro_size+1023)//1024*1024)}},
-    'begin_data'         : {{'0x%08X' %(entry + (algo.ro_size+1023)//1024*1024 + (algo.rw_size+1023)//1024*1024)}},
-    'begin_stack'        : {{'0x%08X' %(entry + (algo.ro_size+1023)//1024*1024 + (algo.rw_size+1023)//1024*1024 + (algo.flash_page_size+1023)//1024*1024 + 1024)}},
+    'static_base'        : {{'0x%08X' %(entry + algo.rw_start + 0x20)}},
+    'begin_data'         : {{'0x%08X' %(entry + algo.rw_start + 0x20 + algo.rw_size)}},
+    'begin_stack'        : {{'0x%08X' %(entry + algo.rw_start + 0x20 + algo.rw_size + algo.flash_page_size + 1024)}},
 
     'analyzer_supported' : False,
 

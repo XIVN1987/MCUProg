@@ -58,9 +58,9 @@ flash_algo = {
     'pc_BlankCheck'      : 0x12000001F,
     'pc_Read'            : 0x12000001F,
     
-    'static_base'        : 0x20000800,
-    'begin_data'         : 0x20000C00,
-    'begin_stack'        : 0x20002000,
+    'static_base'        : 0x20000518,
+    'begin_data'         : 0x2000051C,
+    'begin_stack'        : 0x2000191C,
 
     'analyzer_supported' : False,
 

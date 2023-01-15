@@ -37,21 +37,29 @@ class Flash(object):
         if self.flash['analyzer_supported']: self.xlink.write_mem_U32(self.flash['analyzer_address'], analyzer)
     
     def Init(self, addr, clk, func):    # func: 1 - Erase, 2 - Program, 3 - Verify
+        print(f'Init {func}')
+        
         res = self.callFunctionAndWait(self.flash['pc_Init'], addr, clk, func)
         
         if res != 0: print(f'Init() error: {res}')
 
     def UnInit(self, func):
+        print(f'UnInit {func}')
+
         res = self.callFunctionAndWait(self.flash['pc_UnInit'], func)
         
         if res != 0: print(f'UnInit() error: {res}')
 
     def EraseSector(self, addr):
+        print(f'Erase @ 0x{addr:08X}')
+
         res = self.callFunctionAndWait(self.flash['pc_EraseSector'], addr)
 
         if res != 0: print(f'EraseSector({addr:08X}) error: {res}')
 
     def ProgramPage(self, addr, data):
+        print(f'Write @ 0x{addr:08X}')
+
         self.xlink.write_mem(self.flash['begin_data'], data) # 将要烧写的数据传入单片机RAM
 
         res = self.callFunctionAndWait(self.flash['pc_ProgramPage'], addr, len(data), self.flash['begin_data'])
@@ -59,6 +67,11 @@ class Flash(object):
         if res != 0: print(f'ProgramPage({addr:08X}) error: {res}')
 
     def Verify(self, addr, data):
+        if self.flash['pc_Verify'] > 0xFFFFFFFF:
+            return
+        
+        print(f'Verify @ 0x{addr:08X}')
+
         self.xlink.write_mem(self.flash['begin_data'], data) # 将要校验的数据传入单片机RAM
 
         res = self.callFunctionAndWait(self.flash['pc_Verify'], addr, len(data), self.flash['begin_data'])
@@ -81,7 +94,6 @@ class Flash(object):
         if res != addr+size: print(f'Read({addr:08X}) error: {res}')
 
     def callFunction(self, pc, r0=None, r1=None, r2=None, r3=None):
-        print(f'{pc:08X}')
         self.xlink.write_reg('pc', pc)
         if r0 is not None: self.xlink.write_reg('r0', r0)
         if r1 is not None: self.xlink.write_reg('r1', r1)
@@ -89,7 +101,7 @@ class Flash(object):
         if r3 is not None: self.xlink.write_reg('r3', r3)
         self.xlink.write_reg('lr', self.flash['load_address'] + 1)
         
-        self.xlink.go()        
+        self.xlink.go()
 
     def callFunctionAndWait(self, pc, r0=None, r1=None, r2=None, r3=None):
         self.callFunction(pc, r0, r1, r2, r3)

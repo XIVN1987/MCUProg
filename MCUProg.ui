@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>600</width>
-    <height>160</height>
+    <width>720</width>
+    <height>180</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>单片机编程器</string>
+   <string>XIVN1987 单片机编程器</string>
   </property>
   <layout class="QVBoxLayout" name="vLayout">
    <property name="spacing">

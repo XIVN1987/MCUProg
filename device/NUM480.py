@@ -16,7 +16,7 @@ class NUM480(object):
 
     def sect_erase(self, addr, size):
         self.flash.Init(0, 0, 1)
-        for i in range(0, (size + self.SECT_SIZE - 1)//self.SECT_SIZE):
+        for i in range(size // self.SECT_SIZE):
             self.flash.EraseSector(addr + self.SECT_SIZE * i)
         self.flash.UnInit(1)
 
@@ -24,7 +24,7 @@ class NUM480(object):
         self.sect_erase(addr, len(data))
 
         self.flash.Init(0, 0, 2)
-        for i in range(0, len(data)//self.PAGE_SIZE):
+        for i in range(len(data) // self.PAGE_SIZE):
             self.flash.ProgramPage(addr + self.PAGE_SIZE * i, data[self.PAGE_SIZE*i : self.PAGE_SIZE*(i+1)])
         self.flash.UnInit(2)
 
@@ -89,9 +89,9 @@ NUM480_flash_algo = {
     'pc_BlankCheck'      : 0x12000001F,
     'pc_Read'            : 0x12000001F,
     
-    'static_base'        : 0x20000800,
-    'begin_data'         : 0x20000C00,
-    'begin_stack'        : 0x20002000,
+    'static_base'        : 0x20000518,
+    'begin_data'         : 0x2000051C,
+    'begin_stack'        : 0x2000191C,
 
     'analyzer_supported' : False,
 
