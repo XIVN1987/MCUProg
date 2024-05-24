@@ -98,8 +98,8 @@ MT7687_flash_algo = {
     'pc_Read'            : 0x12000001F,
     
     'static_base'        : 0x200004F0,
-    'begin_data'         : 0x20000500,
-    'begin_stack'        : 0x20000D00,
+    'begin_data'         : 0x20000558,
+    'begin_stack'        : 0x20000D58,
 
     'analyzer_supported' : False,
 
