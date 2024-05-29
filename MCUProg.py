@@ -192,11 +192,11 @@ class MCUProg(QWidget):
 
     @pyqtSlot(str)
     def on_cmbMCU_currentIndexChanged(self, str):
-        dev = device.Devices[self.cmbMCU.currentText()]
+        dev = device.Devices[self.cmbMCU.currentText()](None)
 
         self.cmbAddr.clear()
         self.cmbSize.clear()
-        for i in range(dev.CHIP_SIZE//dev.SECT_SIZE):
+        for i in range(dev.CHIP_SIZE // dev.SECT_SIZE):
             if (dev.SECT_SIZE * i) % 1024 == 0:
                 self.cmbAddr.addItem('%d K'  %(dev.SECT_SIZE * i    // 1024))
             if (dev.SECT_SIZE * (i+1)) % 1024 == 0:

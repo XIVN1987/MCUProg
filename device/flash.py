@@ -21,75 +21,75 @@ analyzer = (
 
 
 class Flash(object):
-    def __init__(self, xlink, flash):
+    def __init__(self, xlink, falgo):
         self.xlink = xlink
 
-        self.flash = flash
+        self.falgo = falgo
         
         # perform a reset and stop the core on the reset handler
         self.xlink.setTargetState("PROGRAM")
 
-        self.xlink.write_reg('r9', self.flash['static_base'])
-        self.xlink.write_reg('sp', self.flash['begin_stack'])
+        self.xlink.write_reg('r9', self.falgo['static_base'])
+        self.xlink.write_reg('sp', self.falgo['begin_stack'])
 
         # 将Flash算法下载到RAM
-        self.xlink.write_mem_U32(self.flash['load_address'], self.flash['instructions'])
-        if self.flash['analyzer_supported']: self.xlink.write_mem_U32(self.flash['analyzer_address'], analyzer)
+        self.xlink.write_mem_U32(self.falgo['load_address'], self.falgo['instructions'])
+        if self.falgo['analyzer_supported']: self.xlink.write_mem_U32(self.falgo['analyzer_address'], analyzer)
     
     def Init(self, addr, clk, func):    # func: 1 - Erase, 2 - Program, 3 - Verify
         print(f'Init {func}')
         
-        res = self.callFunctionAndWait(self.flash['pc_Init'], addr, clk, func)
+        res = self.callFunctionAndWait(self.falgo['pc_Init'], addr, clk, func)
         
         if res != 0: print(f'Init() error: {res}')
 
     def UnInit(self, func):
         print(f'UnInit {func}')
 
-        res = self.callFunctionAndWait(self.flash['pc_UnInit'], func)
+        res = self.callFunctionAndWait(self.falgo['pc_UnInit'], func)
         
         if res != 0: print(f'UnInit() error: {res}')
 
     def EraseSector(self, addr):
         print(f'Erase @ 0x{addr:08X}')
 
-        res = self.callFunctionAndWait(self.flash['pc_EraseSector'], addr)
+        res = self.callFunctionAndWait(self.falgo['pc_EraseSector'], addr)
 
         if res != 0: print(f'EraseSector({addr:08X}) error: {res}')
 
     def ProgramPage(self, addr, data):
         print(f'Write @ 0x{addr:08X}')
 
-        self.xlink.write_mem(self.flash['begin_data'], data) # 将要烧写的数据传入单片机RAM
+        self.xlink.write_mem(self.falgo['begin_data'], data) # 将要烧写的数据传入单片机RAM
 
-        res = self.callFunctionAndWait(self.flash['pc_ProgramPage'], addr, len(data), self.flash['begin_data'])
+        res = self.callFunctionAndWait(self.falgo['pc_ProgramPage'], addr, len(data), self.falgo['begin_data'])
 
         if res != 0: print(f'ProgramPage({addr:08X}) error: {res}')
 
     def Verify(self, addr, data):
-        if self.flash['pc_Verify'] > 0xFFFFFFFF:
+        if self.falgo['pc_Verify'] > 0xFFFFFFFF:
             return
         
         print(f'Verify @ 0x{addr:08X}')
 
-        self.xlink.write_mem(self.flash['begin_data'], data) # 将要校验的数据传入单片机RAM
+        self.xlink.write_mem(self.falgo['begin_data'], data) # 将要校验的数据传入单片机RAM
 
-        res = self.callFunctionAndWait(self.flash['pc_Verify'], addr, len(data), self.flash['begin_data'])
+        res = self.callFunctionAndWait(self.falgo['pc_Verify'], addr, len(data), self.falgo['begin_data'])
 
         if res != addr+len(data): print(f'Verify({addr:08X}) error: {res}')
 
     def EraseChip(self):
-        res = self.callFunctionAndWait(self.flash['pc_EraseChip'])
+        res = self.callFunctionAndWait(self.falgo['pc_EraseChip'])
 
         if res != 0: print(f'EraseChip() error: {res}')
 
     def BlankCheck(self, addr, size, value):
-        res = self.callFunctionAndWait(self.flash['pc_BlankCheck'], addr, size, value)
+        res = self.callFunctionAndWait(self.falgo['pc_BlankCheck'], addr, size, value)
 
         if res != 0: print(f'BlankCheck({addr:08X}) error: {res}')
 
     def Read(self, addr, size):
-        res = self.callFunctionAndWait(self.flash['pc_Read'], addr, size, self.flash['begin_data'])
+        res = self.callFunctionAndWait(self.falgo['pc_Read'], addr, size, self.falgo['begin_data'])
 
         if res != addr+size: print(f'Read({addr:08X}) error: {res}')
 
@@ -99,7 +99,7 @@ class Flash(object):
         if r1 is not None: self.xlink.write_reg('r1', r1)
         if r2 is not None: self.xlink.write_reg('r2', r2)
         if r3 is not None: self.xlink.write_reg('r3', r3)
-        self.xlink.write_reg('lr', self.flash['load_address'] + 1)
+        self.xlink.write_reg('lr', self.falgo['load_address'] + 1)
         
         self.xlink.go()
 
