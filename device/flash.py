@@ -89,6 +89,8 @@ class Flash(object):
         if res != 0: print(f'BlankCheck({addr:08X}) error: {res}')
 
     def Read(self, addr, size):
+        print(f'Read @ 0x{addr:08X}')
+
         res = self.callFunctionAndWait(self.falgo['pc_Read'], addr, size, self.falgo['begin_data'])
 
         if res != addr+size: print(f'Read({addr:08X}) error: {res}')
