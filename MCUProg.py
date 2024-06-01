@@ -16,6 +16,9 @@ import device
 os.environ['PATH'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'libusb-1.0.24/MinGW64/dll') + os.pathsep + os.environ['PATH']
 
 
+zero_if = lambda i: 0 if i == -1 else i
+
+
 '''
 from MCUProg_UI import Ui_MCUProg
 class MCUProg(QWidget, Ui_MCUProg):
@@ -56,16 +59,15 @@ class MCUProg(QWidget):
             self.conf.set('globals', 'hexpath', '[]')
 
         self.cmbMCU.addItems(device.Devices.keys())
-        self.cmbMCU.setCurrentIndex(self.cmbMCU.findText(self.conf.get('globals', 'mcu')))
+        self.cmbMCU.setCurrentIndex(zero_if(self.cmbMCU.findText(self.conf.get('globals', 'mcu'))))
 
-        self.cmbAddr.setCurrentIndex(self.cmbAddr.findText(self.conf.get('globals', 'addr')))
-        self.cmbSize.setCurrentIndex(self.cmbSize.findText(self.conf.get('globals', 'size')))
+        self.cmbAddr.setCurrentIndex(zero_if(self.cmbAddr.findText(self.conf.get('globals', 'addr'))))
+        self.cmbSize.setCurrentIndex(zero_if(self.cmbSize.findText(self.conf.get('globals', 'size'))))
         
         self.cmbDLL.addItem(self.conf.get('globals', 'dllpath'))
         self.on_tmrDAP_timeout()    # add DAPLink
 
-        index = self.cmbDLL.findText(self.conf.get('globals', 'link'))
-        self.cmbDLL.setCurrentIndex(index if index != -1 else 0)
+        self.cmbDLL.setCurrentIndex(zero_if(self.cmbDLL.findText(self.conf.get('globals', 'link'))))
 
         self.cmbHEX.addItems(eval(self.conf.get('globals', 'hexpath')))
     
@@ -190,20 +192,33 @@ class MCUProg(QWidget):
     def size(self):
         return int(self.cmbSize.currentText().split()[0]) * 1024
 
-    @pyqtSlot(str)
-    def on_cmbMCU_currentIndexChanged(self, str):
+    @pyqtSlot(int)
+    def on_cmbMCU_currentIndexChanged(self, index):
         dev = device.Devices[self.cmbMCU.currentText()](None)
 
+        addr = self.cmbAddr.currentText()
+
         self.cmbAddr.clear()
-        self.cmbSize.clear()
         for i in range(dev.CHIP_SIZE // dev.SECT_SIZE):
             if (dev.SECT_SIZE * i) % 1024 == 0:
                 self.cmbAddr.addItem('%d K'  %(dev.SECT_SIZE * i    // 1024))
+
+        self.cmbAddr.setCurrentIndex(zero_if(self.cmbAddr.findText(addr)))
+
+    @pyqtSlot(int)
+    def on_cmbAddr_currentIndexChanged(self, index):
+        if self.cmbAddr.currentText() == '': return
+
+        dev = device.Devices[self.cmbMCU.currentText()](None)
+
+        size = self.cmbSize.currentText()
+        
+        self.cmbSize.clear()
+        for i in range((dev.CHIP_SIZE - self.addr) // dev.SECT_SIZE):
             if (dev.SECT_SIZE * (i+1)) % 1024 == 0:
                 self.cmbSize.addItem('%d K' %(dev.SECT_SIZE * (i+1) // 1024))
 
-        self.cmbAddr.setCurrentIndex(self.cmbAddr.findText(self.conf.get('globals', 'addr')))
-        self.cmbSize.setCurrentIndex(self.cmbSize.findText(self.conf.get('globals', 'size')))
+        self.cmbSize.setCurrentIndex(zero_if(self.cmbSize.findText(size)))
 
     @pyqtSlot()
     def on_btnDLL_clicked(self):
