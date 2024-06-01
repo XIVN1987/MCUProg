@@ -51,9 +51,9 @@ class MCUProg(QWidget):
         
         if not self.conf.has_section('globals'):
             self.conf.add_section('globals')
-            self.conf.set('globals', 'mcu', 'NUM480')
+            self.conf.set('globals', 'mcu',  'NUM480')
             self.conf.set('globals', 'addr', '0 K')
-            self.conf.set('globals', 'size', '4 K')
+            self.conf.set('globals', 'size', '16 K')
             self.conf.set('globals', 'link', '')
             self.conf.set('globals', 'dllpath', '')
             self.conf.set('globals', 'hexpath', '[]')
@@ -201,7 +201,7 @@ class MCUProg(QWidget):
         self.cmbAddr.clear()
         for i in range(dev.CHIP_SIZE // dev.SECT_SIZE):
             if (dev.SECT_SIZE * i) % 1024 == 0:
-                self.cmbAddr.addItem('%d K'  %(dev.SECT_SIZE * i    // 1024))
+                self.cmbAddr.addItem('%d K' %(dev.SECT_SIZE * i     // 1024))
 
         self.cmbAddr.setCurrentIndex(zero_if(self.cmbAddr.findText(addr)))
 
@@ -222,7 +222,7 @@ class MCUProg(QWidget):
 
     @pyqtSlot()
     def on_btnDLL_clicked(self):
-        dllpath, filter = QFileDialog.getOpenFileName(caption='JLink_x64.dll路径', filter='动态链接库 (*.dll)', directory=self.cmbDLL.itemText(0))
+        dllpath, filter = QFileDialog.getOpenFileName(caption='JLink_x64.dll 路径', filter='动态链接库 (*.dll)', directory=self.cmbDLL.itemText(0))
         if dllpath:
             self.cmbDLL.setItemText(0, dllpath)
 
@@ -233,7 +233,7 @@ class MCUProg(QWidget):
             self.cmbHEX.insertItem(0, hexpath)
             self.cmbHEX.setCurrentIndex(0)
     
-    def closeEvent(self, evt):        
+    def closeEvent(self, evt):
         self.conf.set('globals', 'mcu',  self.cmbMCU.currentText())
         self.conf.set('globals', 'addr', self.cmbAddr.currentText())
         self.conf.set('globals', 'size', self.cmbSize.currentText())
