@@ -57,6 +57,7 @@ class MCUProg(QWidget):
             self.conf.set('globals', 'link', '')
             self.conf.set('globals', 'dllpath', '')
             self.conf.set('globals', 'hexpath', '[]')
+            self.conf.set('globals', 'savpath', '')
 
         self.cmbMCU.addItems(device.Devices.keys())
         self.cmbMCU.setCurrentIndex(zero_if(self.cmbMCU.findText(self.conf.get('globals', 'mcu'))))
@@ -70,6 +71,8 @@ class MCUProg(QWidget):
         self.cmbDLL.setCurrentIndex(zero_if(self.cmbDLL.findText(self.conf.get('globals', 'link'))))
 
         self.cmbHEX.addItems(eval(self.conf.get('globals', 'hexpath')))
+
+        self.savPath = self.conf.get('globals', 'savpath')
     
     def on_tmrDAP_timeout(self):
         if not self.isEnabled():    # link working
@@ -173,8 +176,9 @@ class MCUProg(QWidget):
             self.threadRead.start()
 
     def on_btnRead_finished(self):
-        binpath, filter = QFileDialog.getSaveFileName(caption='将读取到的数据保存到文件', filter='程序文件 (*.bin)')
+        binpath, filter = QFileDialog.getSaveFileName(caption='将读取到的数据保存到文件', filter='程序文件 (*.bin)', directory=self.savPath)
         if binpath:
+            self.savPath = binpath
             with open(binpath, 'wb') as f:
                 f.write(bytes(self.buff))
 
@@ -239,6 +243,7 @@ class MCUProg(QWidget):
         self.conf.set('globals', 'size', self.cmbSize.currentText())
         self.conf.set('globals', 'link', self.cmbDLL.currentText())
         self.conf.set('globals', 'dllpath', self.cmbDLL.itemText(0))
+        self.conf.set('globals', 'savpath', self.savPath)
 
         hexpath = [self.cmbHEX.currentText()] + [self.cmbHEX.itemText(i) for i in range(self.cmbHEX.count())]
         self.conf.set('globals', 'hexpath', repr(list(collections.OrderedDict.fromkeys(hexpath))))    # 保留顺序去重    
