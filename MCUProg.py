@@ -232,7 +232,7 @@ class MCUProg(QWidget):
 
     @pyqtSlot()
     def on_btnHEX_clicked(self):
-        hexpath, filter = QFileDialog.getOpenFileName(caption='程序文件路径', filter='程序文件 (*.bin *.hex)', directory=self.cmbHEX.currentText())
+        hexpath, filter = QFileDialog.getOpenFileName(caption='程序文件路径', filter='程序文件 (*.bin *.hex);;任意文件 (*.*)', directory=self.cmbHEX.currentText())
         if hexpath:
             self.cmbHEX.insertItem(0, hexpath)
             self.cmbHEX.setCurrentIndex(0)
