@@ -1,3 +1,4 @@
+import math
 import importlib
 
 from . import flash
@@ -27,6 +28,10 @@ class Chip(object):
         return self.falgo['flash_size']
 
     @property
+    def SECT_SKIP(self):    # 有些 Flash 前几个扇区不能使用
+        return 0
+
+    @property
     def SECT_SIZE(self):
         starts, sizes = zip(*self.falgo['sector_sizes'])
 
@@ -49,17 +54,17 @@ class Chip(object):
 
     def chip_write(self, addr, data):
         self.flash.Init(0, 0, 1)
-        for i in range(len(data) // self.SECT_SIZE):
+        for i in range(math.ceil(len(data) / self.SECT_SIZE)):
             self.flash.EraseSector(self.CHIP_BASE + addr + self.SECT_SIZE * i)
         self.flash.UnInit(1)
 
         self.flash.Init(0, 0, 2)
-        for i in range(len(data) // self.PAGE_SIZE):
+        for i in range(math.ceil(len(data) / self.PAGE_SIZE)):
             self.flash.ProgramPage(self.CHIP_BASE + addr + self.PAGE_SIZE * i, data[self.PAGE_SIZE*i : self.PAGE_SIZE*(i+1)])
         self.flash.UnInit(2)
 
         self.flash.Init(0, 0, 3)
-        for i in range(len(data) // self.PAGE_SIZE):
+        for i in range(math.ceil(len(data) / self.PAGE_SIZE)):
             self.flash.Verify(self.CHIP_BASE + addr + self.PAGE_SIZE * i, data[self.PAGE_SIZE*i : self.PAGE_SIZE*(i+1)])
         self.flash.UnInit(3)
 

@@ -35,6 +35,10 @@ class MCUProg(QWidget):
 
         self.prgInfo.setVisible(False)
 
+        self.table.setVisible(False)
+        self.resize(self.width(), 160)
+        self.table.horizontalHeader().setStretchLastSection(True)
+
         self.initSetting()
 
         self.tmrDAP = QtCore.QTimer()
@@ -118,6 +122,16 @@ class MCUProg(QWidget):
         return True
 
     @pyqtSlot()
+    def on_btnChipErase_clicked(self):
+        if self.connect():
+            self.setEnabled(False)
+            self.prgInfo.setVisible(True)
+
+            self.threadErase = ThreadAsync(self.dev.chip_erase)
+            self.threadErase.taskFinished.connect(self.on_btnErase_finished)
+            self.threadErase.start()
+
+    @pyqtSlot()
     def on_btnErase_clicked(self):
         if self.connect():
             self.setEnabled(False)
@@ -142,19 +156,45 @@ class MCUProg(QWidget):
             self.setEnabled(False)
             self.prgInfo.setVisible(True)
 
-            if self.cmbHEX.currentText().endswith('.hex'):
-                data = parseHex(self.cmbHEX.currentText())
-            else:
-                data = open(self.cmbHEX.currentText(), 'rb').read()
+            fpath = self.cmbHEX.currentText()
+            if not os.path.exists(fpath):
+                QMessageBox.warning(self, '文件不存在', fpath, QMessageBox.Yes)
+                return
 
-            if len(data)%self.dev.PAGE_SIZE:
-                data += b'\xFF' * (self.dev.PAGE_SIZE - len(data)%self.dev.PAGE_SIZE)
+            if fpath.endswith('.ini'):
+                self.wrdata = []
+                for i in range(self.table.rowCount()):
+                    if self.table.item(i, 0).checkState():
+                        fpath = self.table.item(i, 2).text()
+                        if not os.path.exists(fpath):
+                            QMessageBox.warning(self, '文件不存在', fpath, QMessageBox.Yes)
+                            return
+
+                        addr = int(self.table.item(i, 1).text(), 16) - self.dev.CHIP_BASE
+
+                        if fpath.endswith('.hex'):
+                            self.wrdata.append((addr, parseHex(fpath)))
+
+                        else:
+                            self.wrdata.append((addr, open(fpath, 'rb').read()))
             
-            self.threadWrite = ThreadAsync(self.dev.chip_write, self.addr, data)
+            elif fpath.endswith('.hex'):
+                self.wrdata = [(self.addr, parseHex(fpath))]
+
+            else:
+                self.wrdata = [(self.addr, open(fpath, 'rb').read())]
+            
+            self.threadWrite = ThreadAsync(self.dev.chip_write, *self.wrdata.pop())
             self.threadWrite.taskFinished.connect(self.on_btnWrite_finished)
             self.threadWrite.start()
 
     def on_btnWrite_finished(self):
+        if len(self.wrdata):
+            self.threadWrite.args = self.wrdata.pop()
+            self.threadWrite.start()
+
+            return
+
         QMessageBox.information(self, '烧写完成', '        程序烧写完成        ', QMessageBox.Yes)
 
         self.xlk.reset()
@@ -169,9 +209,9 @@ class MCUProg(QWidget):
             self.setEnabled(False)
             self.prgInfo.setVisible(True)
 
-            self.buff = []      # bytes 无法 extend，因此用 list
+            self.rdbuff = []    # bytes 无法 extend，因此用 list
 
-            self.threadRead = ThreadAsync(self.dev.chip_read, self.addr, self.size, self.buff)
+            self.threadRead = ThreadAsync(self.dev.chip_read, self.addr, self.size, self.rdbuff)
             self.threadRead.taskFinished.connect(self.on_btnRead_finished)
             self.threadRead.start()
 
@@ -180,7 +220,7 @@ class MCUProg(QWidget):
         if binpath:
             self.savPath = binpath
             with open(binpath, 'wb') as f:
-                f.write(bytes(self.buff))
+                f.write(bytes(self.rdbuff))
 
         self.xlk.reset()
         self.xlk.close()
@@ -203,11 +243,16 @@ class MCUProg(QWidget):
         addr = self.cmbAddr.currentText()
 
         self.cmbAddr.clear()
-        for i in range(dev.CHIP_SIZE // dev.SECT_SIZE):
+        for i in range(dev.SECT_SKIP // dev.SECT_SIZE, dev.CHIP_SIZE // dev.SECT_SIZE):
             if (dev.SECT_SIZE * i) % 1024 == 0:
                 self.cmbAddr.addItem('%d K' %(dev.SECT_SIZE * i     // 1024))
 
         self.cmbAddr.setCurrentIndex(zero_if(self.cmbAddr.findText(addr)))
+
+        if dev.falgo['pc_EraseChip'] > 0xFFFFFFFF:
+            self.btnChipErase.setEnabled(False)
+        else:
+            self.btnChipErase.setEnabled(True)
 
     @pyqtSlot(int)
     def on_cmbAddr_currentIndexChanged(self, index):
@@ -232,10 +277,44 @@ class MCUProg(QWidget):
 
     @pyqtSlot()
     def on_btnHEX_clicked(self):
-        hexpath, filter = QFileDialog.getOpenFileName(caption='程序文件路径', filter='程序文件 (*.bin *.hex);;任意文件 (*.*)', directory=self.cmbHEX.currentText())
+        hexpath, filter = QFileDialog.getOpenFileName(caption='程序文件路径', filter='程序文件 (*.bin *.hex *.ini);;任意文件 (*.*)', directory=self.cmbHEX.currentText())
         if hexpath:
             self.cmbHEX.insertItem(0, hexpath)
             self.cmbHEX.setCurrentIndex(0)
+
+    @pyqtSlot(str)
+    def on_cmbHEX_currentIndexChanged(self, text):
+        if text.endswith('.ini'):
+            self.table.setVisible(True)
+            self.resize(self.width(), 270)
+
+            conf = configparser.ConfigParser()
+            conf.read(text, encoding='utf-8')
+            self.table.setRowCount(len(conf.sections()))
+            for i,section in enumerate(conf.sections()):
+                checkbox = QtWidgets.QTableWidgetItem(section)
+                checkbox.setCheckState(QtCore.Qt.Checked)
+                self.table.setItem(i, 0, checkbox)
+                self.table.setItem(i, 1, QtWidgets.QTableWidgetItem(conf.get(section, 'addr')))
+                self.table.setItem(i, 2, QtWidgets.QTableWidgetItem(conf.get(section, 'path')))
+        
+        else:
+            self.table.setVisible(False)
+            self.resize(self.width(), 160)
+
+    @pyqtSlot(int, int)
+    def on_table_cellDoubleClicked(self, row, column):
+        if column != 2: # 只能设置文件路径
+            return
+
+        hexpath, filter = QFileDialog.getOpenFileName(caption='程序文件路径', filter='程序文件 (*.bin *.hex);;任意文件 (*.*)', directory=self.table.item(row, column).text())
+        if hexpath:
+            self.table.setItem(row, column, QtWidgets.QTableWidgetItem(hexpath))
+
+            conf = configparser.ConfigParser()
+            conf.read(self.cmbHEX.currentText(), encoding='utf-8')
+            conf.set(self.table.item(row, 0).text(), 'path', hexpath)
+            conf.write(open(self.cmbHEX.currentText(), 'w', encoding='utf-8'))
     
     def closeEvent(self, evt):
         self.conf.set('globals', 'mcu',  self.cmbMCU.currentText())
@@ -261,6 +340,7 @@ class ThreadAsync(QThread):
 
     def run(self):
         self.func(*self.args)
+        
         self.taskFinished.emit()
 
 

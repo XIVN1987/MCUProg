@@ -23,3 +23,16 @@ class new_chip(chip.Chip):
 ``` python
 ('new_chip',       XXM32.new_chip),
 ```
+
+
+## multi file programming
+By using `STM32_withBoot.ini` with content as below, you can write multi file to different address one-time for same flash algorithm.
+``` ini
+[BOOT]
+addr = 0x00000
+path = D:/work_dir/STM32-Boot-Demo/STM32_UserBoot/out/STM32_stdperiph_lib.hex
+
+[APP]
+addr = 0x10000
+path = D:/work_dir/STM32-Boot-Demo/STM32_App/out/STM32_stdperiph_lib.bin
+```

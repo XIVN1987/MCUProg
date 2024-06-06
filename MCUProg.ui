@@ -6,9 +6,21 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>720</width>
-    <height>180</height>
+    <width>800</width>
+    <height>270</height>
    </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>800</width>
+    <height>160</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>1000</width>
+    <height>270</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>XIVN1987 单片机编程器</string>
@@ -192,6 +204,34 @@
     </layout>
    </item>
    <item>
+    <widget class="QTableWidget" name="table">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+     <property name="editTriggers">
+      <set>QAbstractItemView::NoEditTriggers</set>
+     </property>
+     <property name="rowCount">
+      <number>3</number>
+     </property>
+     <property name="columnCount">
+      <number>3</number>
+     </property>
+     <attribute name="horizontalHeaderVisible">
+      <bool>false</bool>
+     </attribute>
+     <attribute name="verticalHeaderVisible">
+      <bool>false</bool>
+     </attribute>
+     <row/>
+     <row/>
+     <row/>
+     <column/>
+     <column/>
+     <column/>
+    </widget>
+   </item>
+   <item>
     <layout class="QHBoxLayout" name="hLayout4">
      <property name="topMargin">
       <number>10</number>
@@ -230,6 +270,13 @@
         </size>
        </property>
       </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnChipErase">
+       <property name="text">
+        <string>整片擦除</string>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QPushButton" name="btnErase">
