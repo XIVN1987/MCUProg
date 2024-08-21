@@ -64,8 +64,21 @@ class Chip(object):
         self.flash.UnInit(2)
 
         self.flash.Init(0, 0, 3)
-        for i in range(math.ceil(len(data) / self.PAGE_SIZE)):
-            self.flash.Verify(self.CHIP_BASE + addr + self.PAGE_SIZE * i, data[self.PAGE_SIZE*i : self.PAGE_SIZE*(i+1)])
+        if self.falgo['pc_Verify'] > 0xFFFFFFFF:
+            c_char_Array = self.xlink.read_mem(self.CHIP_BASE + addr, len(data))
+
+            buff = list(bytes(c_char_Array))
+
+            for i in range(len(data)):
+                if buff[i] != data[i]:
+                    print(f'byte @ 0x{self.CHIP_BASE + addr + i:08X} is 0x{buff[i]:02X}, expected 0x{data[i]:02X}')
+                    break
+            else:
+                print('Verify OK')
+
+        else:
+            for i in range(math.ceil(len(data) / self.PAGE_SIZE)):
+                self.flash.Verify(self.CHIP_BASE + addr + self.PAGE_SIZE * i, data[self.PAGE_SIZE*i : self.PAGE_SIZE*(i+1)])
         self.flash.UnInit(3)
 
     def chip_read(self, addr, size, buff):

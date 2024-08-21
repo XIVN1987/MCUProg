@@ -67,9 +67,6 @@ class Flash(object):
         if res != 0: print(f'ProgramPage({addr:08X}) error: {res}')
 
     def Verify(self, addr, data):
-        if self.falgo['pc_Verify'] > 0xFFFFFFFF:
-            return
-        
         print(f'Verify @ 0x{addr:08X}')
 
         self.xlink.write_mem(self.falgo['begin_data'], data) # 将要校验的数据传入单片机RAM
