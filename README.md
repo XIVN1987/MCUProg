@@ -6,7 +6,7 @@ To run this software, you need python 3.6+ and pyqt5.
 To use DAPLink, you need additional pyusb for CMSIS-DAPv2 and another usb-backend for CMSIS-DAPv1 (hidapi or pywinusb for windows, hidapi for mac, pyusb for linux).
 
 ``` shell
-pip install PyQt5 pyusb hidapi six
+pip install PyQt5 pyusb hidapi six pyelftools
 ```
 
 ![](./%E6%88%AA%E5%9B%BE.jpg)
