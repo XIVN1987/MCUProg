@@ -29,7 +29,7 @@ NUM480      0x20000000  0x2000  FlashAlgo/M481_AP_512.FLM
 ### Powerful method
 1. put new_chip.FLM to FlashAlgo folder
 2. run FlashAlgo/flash_algo.py to generate new_chip.py
-3. add below code in device/XXM32.py file:
+3. add below code in device/new_chip.py file:
 ``` python
 class new_chip(chip.Chip):
     def __init__(self, xlink):
@@ -37,7 +37,7 @@ class new_chip(chip.Chip):
 ```
 4. add below code in device/\_\_init__.py file:
 ``` python
-('new_chip',       XXM32.new_chip),
+('new_chip',       new_chip.new_chip),
 ```
 
 In class new_chip, you can add arbitrary python code to do something FLM don't support, so i call it 'Powerful method'.
