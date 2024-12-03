@@ -1,5 +1,6 @@
 #! python3
 import ctypes
+import struct
 import collections
 
 
@@ -31,10 +32,9 @@ Symbol = collections.namedtuple('Symbol', 'name addr size')
 class FlashAlgo(object):
     ''' Flash Programming Algorithm parsed from MDK FLM file '''
 
-    ALGO_HEADER = [
-        0x00, 0xBE, 0x0A, 0xE0, 0x0D, 0x78, 0x2D, 0x06, 0x68, 0x40, 0x08, 0x24, 0x40, 0x00, 0x00, 0xD3,
-        0x58, 0x40, 0x64, 0x1E, 0xFA, 0xD1, 0x49, 0x1C, 0x52, 0x1E, 0x00, 0x2A, 0xF2, 0xD1, 0x70, 0x47
-    ]
+    ''' 中断 halt 程序，让函数执行完后返回到这里来执行从而让 CPU 自动 halt 住 '''
+    ALGO_HEADER = [0xE00ABE00, 0x062D780D, 0x24084068, 0xD3000040, 0x1E644058, 0x1C49D1FA, 0x2A001E52, 0x4770D1F2]
+    SIZE_HEADER = len(ALGO_HEADER) * 4
 
     def __init__(self, path, ram_start, ram_size: 'size of RAM for Algorithm'):
         self.flash_algo = {}
@@ -49,7 +49,7 @@ class FlashAlgo(object):
 
             for func in ('Init', 'UnInit', 'EraseChip', 'EraseSector', 'ProgramPage', 'Verify', 'BlankCheck', 'Read'):
                 if func in self.syms:
-                    self.flash_algo[f'pc_{func}'] = self.syms[func].addr + ram_start + len(self.ALGO_HEADER)
+                    self.flash_algo[f'pc_{func}'] = self.syms[func].addr + ram_start + self.SIZE_HEADER
                 else:
                     self.flash_algo[f'pc_{func}'] = 0xFFFFFFFF
 
@@ -57,12 +57,16 @@ class FlashAlgo(object):
 
             self.parseAlgo()
 
-            self.flash_algo['instructions'] = bytearray(self.ALGO_HEADER) + self.algo_data
-
             self.flash_algo['load_address'] = ram_start
-            self.flash_algo['static_base']  = ram_start + len(self.ALGO_HEADER) + self.ro_size
-            self.flash_algo['begin_data']   = ram_start + len(self.ALGO_HEADER) + self.ro_size + self.rw_size + self.zi_size
+            self.flash_algo['static_base']  = ram_start + self.SIZE_HEADER + self.ro_size
+            self.flash_algo['begin_data']   = ram_start + self.SIZE_HEADER + self.ro_size + self.rw_size + self.zi_size
             self.flash_algo['begin_stack']  = ram_start + ram_size
+
+            self.flash_algo['analyzer_supported'] = False
+
+            algo_word = struct.unpack('<' + 'L' * (len(self.algo_data) // 4), self.algo_data)
+
+            self.flash_algo['instructions'] = self.ALGO_HEADER + [word for word in algo_word]
 
         except Exception as e:
             print(f'parse elf file fail: {e}')
@@ -134,5 +138,10 @@ if __name__ == '__main__':
         print(f'{key:16s}:', end='')
         if isinstance(val, int):
             print(f'{val:08X}')
+        elif key == 'instructions':
+            for i, x in enumerate(val):
+                if i%8 == 0:
+                    print()
+                print(f'{x:08X}, ', end='')
         else:
             print(val)

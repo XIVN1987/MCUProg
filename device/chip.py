@@ -2,6 +2,7 @@ import math
 import importlib
 
 from . import flash
+from . import flashAlgo
 
 
 class Chip(object):
@@ -10,7 +11,13 @@ class Chip(object):
     def __init__(self, xlink, falgo):
         super(Chip, self).__init__()
 
-        self.falgo = importlib.import_module(f'.{falgo}', 'FlashAlgo').flash_algo
+        if isinstance(falgo, tuple):
+            name, addr, size, path = falgo
+
+            self.falgo = flashAlgo.FlashAlgo(path, addr, size).flash_algo
+
+        else:
+            self.falgo = importlib.import_module(f'.{falgo}', 'FlashAlgo').flash_algo
 
         if not xlink:   # used for CHIP_SIZE, SECT_SIZE, PAGE_SIZE access
             return
@@ -64,7 +71,7 @@ class Chip(object):
         self.flash.UnInit(2)
 
         self.flash.Init(0, 0, 3)
-        if self.falgo['pc_Verify'] > 0xFFFFFFFF:
+        if self.falgo['pc_Verify'] >= 0xFFFFFFFF:
             c_char_Array = self.xlink.read_mem(self.CHIP_BASE + addr, len(data))
 
             buff = list(bytes(c_char_Array))
@@ -82,7 +89,7 @@ class Chip(object):
         self.flash.UnInit(3)
 
     def chip_read(self, addr, size, buff):
-        if self.falgo['pc_Read'] > 0xFFFFFFFF:
+        if self.falgo['pc_Read'] >= 0xFFFFFFFF:
             c_char_Array = self.xlink.read_mem(self.CHIP_BASE + addr, size)
 
             buff.extend(list(bytes(c_char_Array)))

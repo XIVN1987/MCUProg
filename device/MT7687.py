@@ -1,11 +1,6 @@
 from . import chip
 
 
-class NUM480(chip.Chip):
-    def __init__(self, xlink):
-        super(NUM480, self).__init__(xlink, 'M481_AP_512')
-
-
 class MT7687(chip.Chip):
     def __init__(self, xlink):
         super(MT7687, self).__init__(xlink, 'MT7687_32M_MXIC')

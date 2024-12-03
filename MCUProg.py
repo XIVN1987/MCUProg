@@ -1,5 +1,6 @@
 #! python3
 import os
+import re
 import sys
 import collections
 import configparser
@@ -11,6 +12,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QFileDialog
 import jlink
 import xlink
 import device
+import device.chip
 
 
 os.environ['PATH'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'libusb-1.0.24/MinGW64/dll') + os.pathsep + os.environ['PATH']
@@ -63,7 +65,7 @@ class MCUProg(QWidget):
             self.conf.set('globals', 'hexpath', '[]')
             self.conf.set('globals', 'savpath', '')
 
-        self.cmbMCU.addItems(device.Devices.keys())
+        self.cmbMCU.addItems(self.parse_devices())
         self.cmbMCU.setCurrentIndex(zero_if(self.cmbMCU.findText(self.conf.get('globals', 'mcu'))))
 
         self.cmbAddr.setCurrentIndex(zero_if(self.cmbAddr.findText(self.conf.get('globals', 'addr'))))
@@ -78,6 +80,31 @@ class MCUProg(QWidget):
 
         self.savPath = self.conf.get('globals', 'savpath')
     
+    def parse_devices(self):
+        cwd = os.getcwd()
+        try:
+            for line in open(os.path.join(cwd, 'devices.txt')):
+                match = re.match(r'(\w+)\s+(.+)\n', line)
+                if match:
+                    name = match.group(1)
+                    addr = 0x20000000
+                    size = 0x1000
+                    path = os.path.join(cwd, match.group(2).strip())
+                    device.Devices[name] = (name, addr, size, path)
+
+                match = re.match(r'(\w+)\s+(0x[0-9a-fA-F]+)\s+(0x[0-9a-fA-F]+)\s+(.+)\n', line)
+                if match:
+                    name = match.group(1)
+                    addr = int(match.group(2), 16)
+                    size = int(match.group(3), 16)
+                    path = os.path.join(cwd, match.group(4).strip())
+                    device.Devices[name] = (name, addr, size, path)
+
+        except Exception as e:
+            print(e)
+
+        return device.Devices.keys()
+
     def on_tmrDAP_timeout(self):
         if not self.isEnabled():    # link working
             return
@@ -93,10 +120,19 @@ class MCUProg(QWidget):
         except Exception as e:
             pass
 
+    def device(self, name, xlink):
+        dev = device.Devices[name]
+
+        if isinstance(dev, tuple):
+            return device.chip.Chip(xlink, dev)
+
+        else:
+            return dev(xlink)
+
     def connect(self):
         try:
             if self.cmbDLL.currentIndex() == 0:
-                self.xlk = xlink.XLink(jlink.JLink(self.cmbDLL.currentText(), device.Devices[self.cmbMCU.currentText()].CHIP_CORE))
+                self.xlk = xlink.XLink(jlink.JLink(self.cmbDLL.currentText(), self.device(self.cmbMCU.currentText(), None).CHIP_CORE))
 
             else:
                 from pyocd.coresight import dap, ap, cortex_m
@@ -112,7 +148,7 @@ class MCUProg(QWidget):
 
                 self.xlk = xlink.XLink(cortex_m.CortexM(None, _ap))
 
-            self.dev = device.Devices[self.cmbMCU.currentText()](self.xlk)
+            self.dev = self.device(self.cmbMCU.currentText(), self.xlk)
 
         except Exception as e:
             QMessageBox.critical(self, '连接失败', str(e), QMessageBox.Yes)
@@ -238,7 +274,7 @@ class MCUProg(QWidget):
 
     @pyqtSlot(int)
     def on_cmbMCU_currentIndexChanged(self, index):
-        dev = device.Devices[self.cmbMCU.currentText()](None)
+        dev = self.device(self.cmbMCU.currentText(), None)
 
         addr = self.cmbAddr.currentText()
 
@@ -258,7 +294,7 @@ class MCUProg(QWidget):
     def on_cmbAddr_currentIndexChanged(self, index):
         if self.cmbAddr.currentText() == '': return
 
-        dev = device.Devices[self.cmbMCU.currentText()](None)
+        dev = self.device(self.cmbMCU.currentText(), None)
 
         size = self.cmbSize.currentText()
         
