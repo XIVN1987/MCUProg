@@ -114,9 +114,9 @@ class MCUProg(QWidget):
             self.daplinks = aggregator.DebugProbeAggregator.get_all_connected_probes()
             if len(self.daplinks) != self.cmbDLL.count() - 1:
                 for i in range(1, self.cmbDLL.count()):
-                    self.cmbDLL.removeItem(i)
+                    self.cmbDLL.removeItem(1)
                 for i, daplink in enumerate(self.daplinks):
-                    self.cmbDLL.addItem(daplink.product_name)
+                    self.cmbDLL.addItem(f'{daplink.product_name} ({daplink.unique_id})')
         except Exception as e:
             pass
 
