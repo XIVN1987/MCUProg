@@ -55,30 +55,38 @@ class MCUProg(QWidget):
         self.conf = configparser.ConfigParser()
         self.conf.read('setting.ini', encoding='utf-8')
         
-        if not self.conf.has_section('globals'):
-            self.conf.add_section('globals')
-            self.conf.set('globals', 'mcu',  'NUM480')
-            self.conf.set('globals', 'addr', '0 K')
-            self.conf.set('globals', 'size', '16 K')
-            self.conf.set('globals', 'link', '')
-            self.conf.set('globals', 'dllpath', '')
-            self.conf.set('globals', 'hexpath', '[]')
-            self.conf.set('globals', 'savpath', '')
+        if not self.conf.has_section('link'):
+            self.conf.add_section('link')
+            self.conf.set('link', 'mode', 'ARM SWD')
+            self.conf.set('link', 'speed', '4 MHz')
+            self.conf.set('link', 'jlink', '')
+            self.conf.set('link', 'select', '')
 
-        self.cmbMCU.addItems(self.parse_devices())
-        self.cmbMCU.setCurrentIndex(zero_if(self.cmbMCU.findText(self.conf.get('globals', 'mcu'))))
+        self.cmbMode.setCurrentIndex(zero_if(self.cmbMode.findText(self.conf.get('link', 'mode'))))
+        self.cmbSpeed.setCurrentIndex(zero_if(self.cmbSpeed.findText(self.conf.get('link', 'speed'))))
 
-        self.cmbAddr.setCurrentIndex(zero_if(self.cmbAddr.findText(self.conf.get('globals', 'addr'))))
-        self.cmbSize.setCurrentIndex(zero_if(self.cmbSize.findText(self.conf.get('globals', 'size'))))
-        
-        self.cmbDLL.addItem(self.conf.get('globals', 'dllpath'))
+        self.cmbDLL.addItem(self.conf.get('link', 'jlink'))
         self.on_tmrDAP_timeout()    # add DAPLink
 
-        self.cmbDLL.setCurrentIndex(zero_if(self.cmbDLL.findText(self.conf.get('globals', 'link'))))
+        self.cmbDLL.setCurrentIndex(zero_if(self.cmbDLL.findText(self.conf.get('link', 'select'))))
 
-        self.cmbHEX.addItems(eval(self.conf.get('globals', 'hexpath')))
+        if not self.conf.has_section('target'):
+            self.conf.add_section('target')
+            self.conf.set('target', 'mcu',  'NUM480')
+            self.conf.set('target', 'addr', '0 K')
+            self.conf.set('target', 'size', '16 K')
+            self.conf.set('target', 'hexpath', '[]')
+            self.conf.set('target', 'savpath', '')
 
-        self.savPath = self.conf.get('globals', 'savpath')
+        self.cmbMCU.addItems(self.parse_devices())
+        self.cmbMCU.setCurrentIndex(zero_if(self.cmbMCU.findText(self.conf.get('target', 'mcu'))))
+
+        self.cmbAddr.setCurrentIndex(zero_if(self.cmbAddr.findText(self.conf.get('target', 'addr'))))
+        self.cmbSize.setCurrentIndex(zero_if(self.cmbSize.findText(self.conf.get('target', 'size'))))
+        
+        self.cmbHEX.addItems(eval(self.conf.get('target', 'hexpath')))
+
+        self.savPath = self.conf.get('target', 'savpath')
     
     def parse_devices(self):
         cwd = os.getcwd()
@@ -130,9 +138,13 @@ class MCUProg(QWidget):
             return dev(xlink)
 
     def connect(self):
+        mode = self.cmbMode.currentText()
+        mode = mode.replace('RISC-V', 'RV').replace(' SWD', '').replace(' cJTAG', '').replace(' JTAG', 'J').lower()
+        core = self.device(self.cmbMCU.currentText(), None).CHIP_CORE
+        speed= int(self.cmbSpeed.currentText().split()[0]) * 1000 # KHz
         try:
             if self.cmbDLL.currentIndex() == 0:
-                self.xlk = xlink.XLink(jlink.JLink(self.cmbDLL.currentText(), self.device(self.cmbMCU.currentText(), None).CHIP_CORE))
+                self.xlk = xlink.XLink(jlink.JLink(self.cmbDLL.currentText(), mode, core, speed))
 
             else:
                 from pyocd.coresight import dap, ap, cortex_m
@@ -353,15 +365,18 @@ class MCUProg(QWidget):
             conf.write(open(self.cmbHEX.currentText(), 'w', encoding='utf-8'))
     
     def closeEvent(self, evt):
-        self.conf.set('globals', 'mcu',  self.cmbMCU.currentText())
-        self.conf.set('globals', 'addr', self.cmbAddr.currentText())
-        self.conf.set('globals', 'size', self.cmbSize.currentText())
-        self.conf.set('globals', 'link', self.cmbDLL.currentText())
-        self.conf.set('globals', 'dllpath', self.cmbDLL.itemText(0))
-        self.conf.set('globals', 'savpath', self.savPath)
+        self.conf.set('link',  'mode', self.cmbMode.currentText())
+        self.conf.set('link',  'speed', self.cmbSpeed.currentText())
+        self.conf.set('link',  'jlink', self.cmbDLL.itemText(0))
+        self.conf.set('link',  'select', self.cmbDLL.currentText())
+
+        self.conf.set('target', 'mcu', self.cmbMCU.currentText())
+        self.conf.set('target', 'addr', self.cmbAddr.currentText())
+        self.conf.set('target', 'size', self.cmbSize.currentText())
+        self.conf.set('target', 'savpath', self.savPath)
 
         hexpath = [self.cmbHEX.currentText()] + [self.cmbHEX.itemText(i) for i in range(self.cmbHEX.count())]
-        self.conf.set('globals', 'hexpath', repr(list(collections.OrderedDict.fromkeys(hexpath))))    # 保留顺序去重    
+        self.conf.set('target', 'hexpath', repr(list(collections.OrderedDict.fromkeys(hexpath))))    # 保留顺序去重    
 
         self.conf.write(open('setting.ini', 'w', encoding='utf-8'))
 

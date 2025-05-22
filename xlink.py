@@ -11,17 +11,11 @@ class XLink(object):
     def __init__(self, xlk):
         self.xlk = xlk
 
-    def open(self, mcucore):
+    def open(self, mode, core, speed):
         if isinstance(self.xlk, jlink.JLink):
-            self.xlk.open(mcucore)
+            self.xlk.open(mode, core, speed)
         else:
             self.xlk.ap.dp.link.open()
-
-    def close(self, mcucore):
-        if isinstance(self.xlk, jlink.JLink):
-            pass
-        else:
-            self.xlk.ap.dp.link.close()
 
     def write_U8(self, addr, val):
         if isinstance(self.xlk, jlink.JLink):
