@@ -33,8 +33,9 @@ class FlashAlgo(object):
     ''' Flash Programming Algorithm parsed from MDK FLM file '''
 
     ''' 中断 halt 程序，让函数执行完后返回到这里来执行从而让 CPU 自动 halt 住 '''
-    ALGO_HEADER = [0xE00ABE00, 0x062D780D, 0x24084068, 0xD3000040, 0x1E644058, 0x1C49D1FA, 0x2A001E52, 0x4770D1F2]
-    SIZE_HEADER = len(ALGO_HEADER) * 4
+    ALGO_HEADER_ARM = [0xE00ABE00, 0x062D780D, 0x24084068, 0xD3000040, 0x1E644058, 0x1C49D1FA, 0x2A001E52, 0x4770D1F2]
+    ALGO_HEADER_RV =  [0x00100073, 0x00088893, 0x00088893, 0x00088893, 0x00088893, 0x00088893, 0x00088893, 0x00088893]
+    SIZE_HEADER = len(ALGO_HEADER_ARM) * 4
 
     def __init__(self, path, ram_start, ram_size: 'size of RAM for Algorithm'):
         self.flash_algo = {}
@@ -42,6 +43,8 @@ class FlashAlgo(object):
         try:
             from elftools.elf.elffile import ELFFile
             self.elf = ELFFile(open(path, 'rb'))
+
+            self.flash_algo['arch'] = self.elf.get_machine_arch()
 
             self.syms = {}
             for sym in self.elf.get_section_by_name('.symtab').iter_symbols():
@@ -62,11 +65,13 @@ class FlashAlgo(object):
             self.flash_algo['begin_data']   = ram_start + self.SIZE_HEADER + self.ro_size + self.rw_size + self.zi_size
             self.flash_algo['begin_stack']  = ram_start + ram_size
 
-            self.flash_algo['analyzer_supported'] = False
-
             algo_word = struct.unpack('<' + 'L' * (len(self.algo_data) // 4), self.algo_data)
 
-            self.flash_algo['instructions'] = self.ALGO_HEADER + [word for word in algo_word]
+            if self.flash_algo['arch'] == 'ARM':
+                self.flash_algo['instructions'] = self.ALGO_HEADER_ARM + [word for word in algo_word]
+
+            elif self.flash_algo['arch'] == 'RISC-V':
+                self.flash_algo['instructions'] = self.ALGO_HEADER_RV  + [word for word in algo_word]
 
         except Exception as e:
             print(f'parse elf file fail: {e}')

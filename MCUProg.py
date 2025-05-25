@@ -137,7 +137,7 @@ class MCUProg(QWidget):
         else:
             return dev(xlink)
 
-    def connect(self):
+    def link_open(self):
         mode = self.cmbMode.currentText()
         mode = mode.replace('RISC-V', 'RV').replace(' SWD', '').replace(' cJTAG', '').replace(' JTAG', 'J').lower()
         core = self.device(self.cmbMCU.currentText(), None).CHIP_CORE
@@ -169,9 +169,14 @@ class MCUProg(QWidget):
 
         return True
 
+    def link_close(self):
+        self.xlk.reset()
+
+        self.xlk.close()
+
     @pyqtSlot()
     def on_btnChipErase_clicked(self):
-        if self.connect():
+        if self.link_open():
             self.setEnabled(False)
             self.prgInfo.setVisible(True)
 
@@ -181,7 +186,7 @@ class MCUProg(QWidget):
 
     @pyqtSlot()
     def on_btnErase_clicked(self):
-        if self.connect():
+        if self.link_open():
             self.setEnabled(False)
             self.prgInfo.setVisible(True)
 
@@ -192,15 +197,14 @@ class MCUProg(QWidget):
     def on_btnErase_finished(self):
         QMessageBox.information(self, '擦除完成', '        芯片擦除完成        ', QMessageBox.Yes)
 
-        self.xlk.reset()
-        self.xlk.close()
+        self.link_close()
 
         self.setEnabled(True)
         self.prgInfo.setVisible(False)
 
     @pyqtSlot()
     def on_btnWrite_clicked(self):
-        if self.connect():
+        if self.link_open():
             self.setEnabled(False)
             self.prgInfo.setVisible(True)
 
@@ -245,15 +249,14 @@ class MCUProg(QWidget):
 
         QMessageBox.information(self, '烧写完成', '        程序烧写完成        ', QMessageBox.Yes)
 
-        self.xlk.reset()
-        self.xlk.close()
+        self.link_close()
 
         self.setEnabled(True)
         self.prgInfo.setVisible(False)
 
     @pyqtSlot()
     def on_btnRead_clicked(self):
-        if self.connect():
+        if self.link_open():
             self.setEnabled(False)
             self.prgInfo.setVisible(True)
 
@@ -270,8 +273,7 @@ class MCUProg(QWidget):
             with open(binpath, 'wb') as f:
                 f.write(bytes(self.rdbuff))
 
-        self.xlk.reset()
-        self.xlk.close()
+        self.link_close()
 
         self.setEnabled(True)
         self.prgInfo.setVisible(False)

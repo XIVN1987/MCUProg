@@ -15,6 +15,7 @@ class Chip(object):
             name, addr, size, path = falgo
 
             self.falgo = flashAlgo.FlashAlgo(path, addr, size).flash_algo
+            if self.falgo['arch'] == 'RISC-V':  self.CHIP_CORE = 'RISC-V'
 
         else:
             self.falgo = importlib.import_module(f'.{falgo}', 'FlashAlgo').flash_algo

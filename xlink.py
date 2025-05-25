@@ -17,6 +17,13 @@ class XLink(object):
         else:
             self.xlk.ap.dp.link.open()
 
+    @property
+    def mode(self):
+        if isinstance(self.xlk, jlink.JLink):
+            return self.xlk.mode
+        else:
+            return 'arm'
+    
     def write_U8(self, addr, val):
         if isinstance(self.xlk, jlink.JLink):
             self.xlk.write_U8(addr, val)
@@ -97,15 +104,10 @@ class XLink(object):
             self.xlk.write_core_register_raw(reg, val)
 
     def reset(self):
-        NVIC_AIRCR = 0xE000ED0C
-        NVIC_AIRCR_VECTKEY      = (0x5FA << 16)
-        NVIC_AIRCR_VECTRESET    = (1 << 0)
-        NVIC_AIRCR_SYSRESETREQ  = (1 << 2)
-
-        try:
-            self.write_U32(NVIC_AIRCR, NVIC_AIRCR_VECTKEY | NVIC_AIRCR_SYSRESETREQ)
-        except Exception as e:
-            print(e)
+        if isinstance(self.xlk, jlink.JLink):
+            self.xlk.reset()
+        else:
+            self.xlk.reset()
     
     def halt(self):
         if isinstance(self.xlk, jlink.JLink):
@@ -186,7 +188,11 @@ class XLink(object):
             return self.TARGET_RUNNING
 
     def running(self):
-        return self.getState() == self.TARGET_RUNNING
+        if self.mode.startswith('arm'):
+            return self.getState() == self.TARGET_RUNNING
+
+        elif self.mode.startswith('rv'):
+            return not self.halted()
 
     def setTargetState(self, state):
         if state == 'PROGRAM':
