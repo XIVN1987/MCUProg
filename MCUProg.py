@@ -154,6 +154,7 @@ class MCUProg(QWidget):
                 _dp = dap.DebugPort(daplink, None)
                 _dp.init()
                 _dp.power_up_debug()
+                _dp.set_clock(speed * 1000)
 
                 _ap = ap.AHB_AP(_dp, 0)
                 _ap.init()
