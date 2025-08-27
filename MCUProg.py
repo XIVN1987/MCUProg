@@ -65,7 +65,8 @@ class MCUProg(QWidget):
         self.cmbMode.setCurrentIndex(zero_if(self.cmbMode.findText(self.conf.get('link', 'mode'))))
         self.cmbSpeed.setCurrentIndex(zero_if(self.cmbSpeed.findText(self.conf.get('link', 'speed'))))
 
-        self.cmbDLL.addItem(self.conf.get('link', 'jlink'))
+        self.cmbDLL.addItem(self.conf.get('link', 'jlink'), 'jlink')
+        self.cmbDLL.addItem('OpenOCD', 'openocd')
         self.on_tmrDAP_timeout()    # add DAPLink
 
         self.cmbDLL.setCurrentIndex(zero_if(self.cmbDLL.findText(self.conf.get('link', 'select'))))
@@ -120,13 +121,15 @@ class MCUProg(QWidget):
         try:
             from pyocd.probe import aggregator
             self.daplinks = aggregator.DebugProbeAggregator.get_all_connected_probes()
-            if len(self.daplinks) != self.cmbDLL.count() - 1:
-                for i in range(1, self.cmbDLL.count()):
-                    self.cmbDLL.removeItem(1)
-                for i, daplink in enumerate(self.daplinks):
-                    self.cmbDLL.addItem(f'{daplink.product_name} ({daplink.unique_id})')
         except Exception as e:
-            pass
+            self.daplinks = []
+
+        if len(self.daplinks) != self.cmbDLL.count() - 2:
+            for i in range(2, self.cmbDLL.count()):
+                self.cmbDLL.removeItem(2)
+
+            for i, daplink in enumerate(self.daplinks):
+                self.cmbDLL.addItem(f'{daplink.product_name} ({daplink.unique_id})', i)
 
     def device(self, name, xlink):
         dev = device.Devices[name]
@@ -143,12 +146,18 @@ class MCUProg(QWidget):
         core = self.device(self.cmbMCU.currentText(), None).CHIP_CORE
         speed= int(self.cmbSpeed.currentText().split()[0]) * 1000 # KHz
         try:
-            if self.cmbDLL.currentIndex() == 0:
+            item_data = self.cmbDLL.currentData()
+
+            if item_data == 'jlink':
                 self.xlk = xlink.XLink(jlink.JLink(self.cmbDLL.currentText(), mode, core, speed))
+
+            elif item_data == 'openocd':
+                import openocd
+                self.xlk = xlink.XLink(openocd.OpenOCD(mode=mode, core=core, speed=speed))
 
             else:
                 from pyocd.coresight import dap, ap, cortex_m
-                daplink = self.daplinks[self.cmbDLL.currentIndex() - 1]
+                daplink = self.daplinks[item_data]
                 daplink.open()
 
                 _dp = dap.DebugPort(daplink, None)

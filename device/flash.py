@@ -12,17 +12,15 @@ class Flash(object):
         self.xlink = xlink
 
         self.falgo = falgo
+
+        # perform a reset and stop the core on the reset handler
+        self.xlink.reset_and_halt()
         
         if self.xlink.mode.startswith('arm'):
-            # perform a reset and stop the core on the reset handler
-            self.xlink.setTargetState("PROGRAM")
-
             self.xlink.write_reg('r9', self.falgo['static_base'])
             self.xlink.write_reg('sp', self.falgo['begin_stack'])
 
         elif self.xlink.mode.startswith('rv'):
-            self.xlink.reset()
-
             self.xlink.write_reg('gp', self.falgo['static_base'])
             self.xlink.write_reg('sp', self.falgo['begin_stack'])
 
@@ -100,7 +98,7 @@ class Flash(object):
             if r1 is not None: self.xlink.write_reg('a1', r1)
             if r2 is not None: self.xlink.write_reg('a2', r2)
             if r3 is not None: self.xlink.write_reg('a3', r3)
-            self.xlink.write_reg('ra', self.falgo['load_address'] + 1)
+            self.xlink.write_reg('ra', self.falgo['load_address'])
         
         self.xlink.go()
 

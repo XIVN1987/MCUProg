@@ -5,6 +5,7 @@ import operator
 
 
 import jlink
+import openocd
 
 
 class XLink(object):
@@ -12,44 +13,44 @@ class XLink(object):
         self.xlk = xlk
 
     def open(self, mode, core, speed):
-        if isinstance(self.xlk, jlink.JLink):
+        if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
             self.xlk.open(mode, core, speed)
         else:
             self.xlk.ap.dp.link.open()
 
     @property
     def mode(self):
-        if isinstance(self.xlk, jlink.JLink):
+        if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
             return self.xlk.mode
         else:
             return 'arm'
     
     def write_U8(self, addr, val):
-        if isinstance(self.xlk, jlink.JLink):
+        if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
             self.xlk.write_U8(addr, val)
         else:
             self.xlk.write8(addr, val)
 
     def write_U16(self, addr, val):
-        if isinstance(self.xlk, jlink.JLink):
+        if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
             self.xlk.write_U16(addr, val)
         else:
             self.xlk.write16(addr, val)
 
     def write_U32(self, addr, val):
-        if isinstance(self.xlk, jlink.JLink):
+        if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
             self.xlk.write_U32(addr, val)
         else:
             self.xlk.write32(addr, val)
 
     def write_mem(self, addr, data):
-        if isinstance(self.xlk, jlink.JLink):
+        if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
             self.xlk.write_mem(addr, data)
         else:
             self.xlk.write_memory_block8(addr, data)
 
     def write_mem_U32(self, addr, data):
-        if isinstance(self.xlk, jlink.JLink):
+        if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
             byte = []
             for x in data: byte.extend([x&0xFF, (x>>8)&0xFF, (x>>16)&0xFF, (x>>24)&0xFF])
             self.xlk.write_mem(addr, byte)
@@ -60,31 +61,31 @@ class XLink(object):
         return self.read_mem_U8(addr, count)
 
     def read_mem_U8(self, addr, count):
-        if isinstance(self.xlk, jlink.JLink):
+        if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
             return self.xlk.read_mem_U8(addr, count)
         else:
             return self.xlk.read_memory_block8(addr, count)
 
     def read_mem_U16(self, addr, count):
-        if isinstance(self.xlk, jlink.JLink):
+        if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
             return self.xlk.read_mem_U16(addr, count)
         else:
             return [self.xlk.read16(addr+i*2) for i in range(count)]
 
     def read_mem_U32(self, addr, count):
-        if isinstance(self.xlk, jlink.JLink):
+        if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
             return self.xlk.read_mem_U32(addr, count)
         else:
             return [self.xlk.read32(addr+i*4) for i in range(count)]
 
     def read_U32(self, addr):
-        if isinstance(self.xlk, jlink.JLink):
+        if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
             return self.xlk.read_U32(addr)
         else:
             return self.xlk.read32(addr)
 
     def read_reg(self, reg):
-        if isinstance(self.xlk, jlink.JLink):
+        if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
             return self.xlk.read_reg(reg)
         else:
             return self.xlk.read_core_register_raw(reg.upper())
@@ -92,54 +93,67 @@ class XLink(object):
     def read_regs(self, rlist):
         rlist = [r.upper() for r in rlist]
         
-        if isinstance(self.xlk, jlink.JLink):
+        if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
             return self.xlk.read_regs(rlist)
         else:
             return dict(zip(rlist, self.xlk.read_core_registers_raw(rlist)))
 
     def write_reg(self, reg, val):
-        if isinstance(self.xlk, jlink.JLink):
+        if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
             self.xlk.write_reg(reg, val)
         else:
             self.xlk.write_core_register_raw(reg, val)
 
     def reset(self):
-        if isinstance(self.xlk, jlink.JLink):
-            self.xlk.reset()
-        else:
-            self.xlk.reset()
+        self.xlk.reset()
+
+        if isinstance(self.xlk, jlink.JLink) and self.mode.startswith('rv'):
+            self.xlk.go()
     
     def halt(self):
-        if isinstance(self.xlk, jlink.JLink):
-            self.xlk.halt()
-        else:
-            self.xlk.halt()
+        self.xlk.halt()
 
     def go(self):
-        if isinstance(self.xlk, jlink.JLink):
+        if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
             self.xlk.go()
         else:
             self.xlk.resume()
 
     def halted(self):
-        if isinstance(self.xlk, jlink.JLink):
+        if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
             return self.xlk.halted()
         else:
             return self.xlk.is_halted()
 
     def close(self):
-        if isinstance(self.xlk, jlink.JLink):
+        if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
             self.xlk.close()
         else:
             self.xlk.ap.dp.link.close()
 
     def read_core_type(self):
-        if isinstance(self.xlk, jlink.JLink):
+        if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
             return self.xlk.read_core_type()
         else:
             self.xlk._read_core_type()
             from pyocd.coresight import cortex_m
             return cortex_m.CORE_TYPE_NAME[self.xlk.core_type]
+
+    def reset_and_halt(self):
+        if isinstance(self.xlk, openocd.OpenOCD):
+            self.xlk.reset(halt=True)
+
+        elif isinstance(self.xlk, jlink.JLink):
+            if self.mode.startswith('rv'):
+                self.xlk.reset()
+
+            else:   # arm
+                self.resetStopOnReset()
+                self.write_reg('xpsr', 0x1000000)   # set thumb bit in case the reset handler points to an ARM address
+
+        else:       # daplink only support arm
+            self.resetStopOnReset()
+            self.write_reg('xpsr', 0x1000000)
 
 
     #####################################################################
@@ -193,12 +207,6 @@ class XLink(object):
 
         elif self.mode.startswith('rv'):
             return not self.halted()
-
-    def setTargetState(self, state):
-        if state == 'PROGRAM':
-            self.resetStopOnReset()
-            # Write the thumb bit in case the reset handler points to an ARM address
-            self.write_reg('xpsr', 0x1000000)
 
     def resetStopOnReset(self):
         ''' perform a reset and stop the core on the reset handler '''
