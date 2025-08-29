@@ -34,7 +34,7 @@ class FlashAlgo(object):
 
     ''' 中断 halt 程序，让函数执行完后返回到这里来执行从而让 CPU 自动 halt 住 '''
     ALGO_HEADER_ARM = [0xE00ABE00, 0x062D780D, 0x24084068, 0xD3000040, 0x1E644058, 0x1C49D1FA, 0x2A001E52, 0x4770D1F2]
-    ALGO_HEADER_RV =  [0x00100073, 0x00088893, 0x00088893, 0x00088893, 0x00088893, 0x00088893, 0x00088893, 0x00088893]
+    ALGO_HEADER_RV =  [0x00100073, 0x00000013, 0x00000013, 0x00000013, 0x00000013, 0x00000013, 0x00000013, 0x00000013]
     SIZE_HEADER = len(ALGO_HEADER_ARM) * 4
 
     def __init__(self, path, ram_start, ram_size: 'size of RAM for Algorithm'):

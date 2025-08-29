@@ -24,6 +24,9 @@ class Flash(object):
             self.xlink.write_reg('gp', self.falgo['static_base'])
             self.xlink.write_reg('sp', self.falgo['begin_stack'])
 
+            dcsr = self.xlink.read_reg('dcsr')
+            self.xlink.write_reg('dcsr', dcsr | (1 << 15))  # when ebreak execute, enter debug mode
+
         # 将Flash算法下载到RAM
         self.xlink.write_mem_U32(self.falgo['load_address'], self.falgo['instructions'])
 
@@ -84,13 +87,13 @@ class Flash(object):
         if res != addr+size: print(f'Read({addr:08X}) error: {res}')
 
     def callFunction(self, pc, r0=None, r1=None, r2=None, r3=None):
-        self.xlink.write_reg('pc', pc)
-
         if self.xlink.mode.startswith('arm'):
             if r0 is not None: self.xlink.write_reg('r0', r0)
             if r1 is not None: self.xlink.write_reg('r1', r1)
             if r2 is not None: self.xlink.write_reg('r2', r2)
             if r3 is not None: self.xlink.write_reg('r3', r3)
+
+            self.xlink.write_reg('pc', pc)
             self.xlink.write_reg('lr', self.falgo['load_address'] + 1)
 
         elif self.xlink.mode.startswith('rv'):
@@ -98,6 +101,8 @@ class Flash(object):
             if r1 is not None: self.xlink.write_reg('a1', r1)
             if r2 is not None: self.xlink.write_reg('a2', r2)
             if r3 is not None: self.xlink.write_reg('a3', r3)
+
+            self.xlink.write_reg('dpc', pc)     # When resuming, PC is updated to value in dpc.
             self.xlink.write_reg('ra', self.falgo['load_address'])
         
         self.xlink.go()
