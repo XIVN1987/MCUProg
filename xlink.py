@@ -108,6 +108,7 @@ class XLink(object):
         self.xlk.reset()
 
         if isinstance(self.xlk, jlink.JLink) and self.mode.startswith('rv'):
+            self.xlk.write_reg('dpc', 0)    # When resuming, PC is updated to value in dpc.
             self.xlk.go()
     
     def halt(self):
