@@ -102,6 +102,7 @@ class Flash(object):
             if r2 is not None: self.xlink.write_reg('a2', r2)
             if r3 is not None: self.xlink.write_reg('a3', r3)
 
+            self.xlink.write_reg('pc', pc)      # OpenOCD: resume from current code position.
             self.xlink.write_reg('dpc', pc)     # When resuming, PC is updated to value in dpc.
             self.xlink.write_reg('ra', self.falgo['load_address'])
         

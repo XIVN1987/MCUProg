@@ -115,7 +115,7 @@ class XLink(object):
         self.xlk.halt()
 
     def go(self):
-        if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
+        if isinstance(self.xlk, jlink.JLink):
             self.xlk.go()
         else:
             self.xlk.resume()
