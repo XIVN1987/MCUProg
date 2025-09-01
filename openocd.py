@@ -106,7 +106,7 @@ class OpenOCD:
     def write_U64(self, addr, val):
         self._exec(f'mwd {addr:#x} {val:#x}')
 
-    def write_mem(self, addr, data):
+    def write_mem_U8(self, addr, data):
         index = 0
         while index < len(data):
             s = ' '.join([f'{x:#x}' for x in data[index:index+256]])
@@ -116,10 +116,31 @@ class OpenOCD:
             addr += 256
             index += 256
 
-    def read_mem_(self, addr, count, width):
-        res = self._exec(f'read_memory {addr:#x} {width} {count}')
+    def write_mem_U32(self, addr, data):
+        index = 0
+        while index < len(data):
+            s = ' '.join([f'{x:#x}' for x in data[index:index+64]])
+            
+            self._exec(f'write_memory {addr:#x} 32 {{{s}}}')
 
-        return [int(x, 16) for x in res.split()]
+            addr += 64 * 4
+            index += 64
+
+    def read_mem_(self, addr, count, width):
+        data = []
+        index = 0
+        while index < count:    # read too much one-time will cause timeout
+            res = self._exec(f'read_memory {addr:#x} {width} 256')
+            if res:
+                data.extend([int(x, 16) for x in res.split()])
+
+                addr += 256 * (width // 8)
+                index += 256
+
+            else:
+                break
+
+        return data
 
     def read_mem_U8(self, addr, count):
         return self.read_mem_(addr, count, 8)

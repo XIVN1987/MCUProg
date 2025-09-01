@@ -73,7 +73,7 @@ class Chip(object):
 
         self.flash.Init(0, 0, 3)
         if self.falgo['pc_Verify'] >= 0xFFFFFFFF:
-            c_char_Array = self.xlink.read_mem(self.CHIP_BASE + addr, len(data))
+            c_char_Array = self.xlink.read_mem_U8(self.CHIP_BASE + addr, len(data))
 
             buff = list(bytes(c_char_Array))
 
@@ -91,7 +91,7 @@ class Chip(object):
 
     def chip_read(self, addr, size, buff):
         if self.falgo['pc_Read'] >= 0xFFFFFFFF:
-            c_char_Array = self.xlink.read_mem(self.CHIP_BASE + addr, size)
+            c_char_Array = self.xlink.read_mem_U8(self.CHIP_BASE + addr, size)
 
             buff.extend(list(bytes(c_char_Array)))
 
@@ -99,6 +99,6 @@ class Chip(object):
             for i in range(0, size // self.PAGE_SIZE):
                 self.flash.Read(self.CHIP_BASE + addr + self.PAGE_SIZE * i, self.PAGE_SIZE)
 
-                c_char_Array = self.xlink.read_mem(self.falgo['begin_data'], self.PAGE_SIZE)
+                c_char_Array = self.xlink.read_mem_U8(self.falgo['begin_data'], self.PAGE_SIZE)
 
                 buff.extend(list(bytes(c_char_Array)))

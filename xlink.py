@@ -43,22 +43,17 @@ class XLink(object):
         else:
             self.xlk.write32(addr, val)
 
-    def write_mem(self, addr, data):
+    def write_mem_U8(self, addr, data):
         if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
-            self.xlk.write_mem(addr, data)
+            self.xlk.write_mem_U8(addr, data)
         else:
             self.xlk.write_memory_block8(addr, data)
 
     def write_mem_U32(self, addr, data):
         if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
-            byte = []
-            for x in data: byte.extend([x&0xFF, (x>>8)&0xFF, (x>>16)&0xFF, (x>>24)&0xFF])
-            self.xlk.write_mem(addr, byte)
+            self.xlk.write_mem_U32(addr, data)
         else:
             self.xlk.write_memory_block32(addr, data)
-
-    def read_mem(self, addr, count):
-        return self.read_mem_U8(addr, count)
 
     def read_mem_U8(self, addr, count):
         if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
@@ -76,7 +71,7 @@ class XLink(object):
         if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
             return self.xlk.read_mem_U32(addr, count)
         else:
-            return [self.xlk.read32(addr+i*4) for i in range(count)]
+            return self.xlk.read_memory_block32(addr, count)
 
     def read_U32(self, addr):
         if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
@@ -107,9 +102,10 @@ class XLink(object):
     def reset(self):
         self.xlk.reset()
 
-        if isinstance(self.xlk, jlink.JLink) and self.mode.startswith('rv'):
+        if self.mode.startswith('rv'):
+            self.xlk.write_reg('pc', 0)     # OpenOCD: resume from current code position.
             self.xlk.write_reg('dpc', 0)    # When resuming, PC is updated to value in dpc.
-            self.xlk.go()
+            self.go()
     
     def halt(self):
         self.xlk.halt()

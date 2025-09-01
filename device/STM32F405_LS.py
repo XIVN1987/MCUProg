@@ -76,6 +76,6 @@ class STM32F405RG(object):
         self.lock()
         
     def chip_read(self, addr, size, buff):
-        c_char_Array = self.xlink.read_mem(addr, size)
+        c_char_Array = self.xlink.read_mem_U8(addr, size)
 
         buff.extend(list(bytes(c_char_Array)))

@@ -65,7 +65,7 @@ class STM32F103C8(object):
             self.page_write(0x08000000 + addr + self.PAGE_SIZE * i, data[self.PAGE_SIZE*i : self.PAGE_SIZE*(i+1)])
 
     def chip_read(self, addr, size, buff):
-        c_char_Array = self.xlink.read_mem(addr, size)
+        c_char_Array = self.xlink.read_mem_U8(addr, size)
 
         buff.extend(list(bytes(c_char_Array)))
 

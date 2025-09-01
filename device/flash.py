@@ -54,7 +54,7 @@ class Flash(object):
     def ProgramPage(self, addr, data):
         print(f'Write @ 0x{addr:08X}')
 
-        self.xlink.write_mem(self.falgo['begin_data'], data) # 将要烧写的数据传入单片机RAM
+        self.xlink.write_mem_U8(self.falgo['begin_data'], data) # 将要烧写的数据传入单片机RAM
 
         res = self.callFunctionAndWait(self.falgo['pc_ProgramPage'], addr, len(data), self.falgo['begin_data'])
 
@@ -63,7 +63,7 @@ class Flash(object):
     def Verify(self, addr, data):
         print(f'Verify @ 0x{addr:08X}')
 
-        self.xlink.write_mem(self.falgo['begin_data'], data) # 将要校验的数据传入单片机RAM
+        self.xlink.write_mem_U8(self.falgo['begin_data'], data) # 将要校验的数据传入单片机RAM
 
         res = self.callFunctionAndWait(self.falgo['pc_Verify'], addr, len(data), self.falgo['begin_data'])
 
