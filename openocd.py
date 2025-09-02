@@ -195,7 +195,7 @@ class OpenOCD:
             self._exec(f'resume {addr:#x}') # resume the target to specified address
 
     def halted(self):
-        res = self._exec('targets')
+        res = self._exec('poll')
 
         return 'halted' in res
 
