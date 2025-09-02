@@ -154,56 +154,24 @@ class XLink(object):
 
 
     #####################################################################
-    TARGET_RUNNING  = 1  # Core is executing code.
-    TARGET_HALTED   = 2  # Core is halted in debug mode.
-    TARGET_RESET    = 3  # Core is being held in reset.
-    TARGET_SLEEPING = 4  # Core is sleeping due to a wfi or wfe instruction.
-    TARGET_LOCKUP   = 5  # Core is locked up.
 
     # Debug Halting Control and Status Register
     DHCSR = 0xE000EDF0
-    C_DEBUGEN   = (1 << 0)
-    C_HALT      = (1 << 1)
-    C_STEP      = (1 << 2)
-    C_MASKINTS  = (1 << 3)
-    C_SNAPSTALL = (1 << 5)
+    C_DEBUGEN   = (1 <<  0)
+    C_HALT      = (1 <<  1)
+    C_STEP      = (1 <<  2)
     S_REGRDY    = (1 << 16)
     S_HALT      = (1 << 17)
     S_SLEEP     = (1 << 18)
     S_LOCKUP    = (1 << 19)
-    S_RETIRE_ST = (1 << 24)
-    S_RESET_ST  = (1 << 25)
+    S_RETIRE_ST = (1 << 24)     # 1: At least one instruction retired since last DHCSR read.
+    S_RESET_ST  = (1 << 25)     # 1: At least one reset since last DHCSR read.
 
     # Debug Exception and Monitor Control Register
     DEMCR = 0xE000EDFC
     DEMCR_TRCENA       = (1 << 24)
-    DEMCR_VC_HARDERR   = (1 << 10)
-    DEMCR_VC_BUSERR    = (1 << 8)
-    DEMCR_VC_CORERESET = (1 << 0)
-
-    DBGKEY = (0xA05F << 16)
-
-    def getState(self):
-        dhcsr = self.read_U32(self.DHCSR)
-        if dhcsr & self.S_RESET_ST:
-            newDhcsr = self.read_U32(self.DHCSR)
-            if (newDhcsr & self.S_RESET_ST) and not (newDhcsr & self.S_RETIRE_ST):
-                return self.TARGET_RESET
-        if dhcsr & self.S_LOCKUP:
-            return self.TARGET_LOCKUP
-        elif dhcsr & self.S_SLEEP:
-            return self.TARGET_SLEEPING
-        elif dhcsr & self.S_HALT:
-            return self.TARGET_HALTED
-        else:
-            return self.TARGET_RUNNING
-
-    def running(self):
-        if self.mode.startswith('arm'):
-            return self.getState() == self.TARGET_RUNNING
-
-        elif self.mode.startswith('rv'):
-            return not self.halted()
+    DEMCR_VC_HARDERR   = (1 << 10)  # Enable halting debug trap on a HardFault exception.
+    DEMCR_VC_CORERESET = (1 <<  0)  # Enable Reset Vector Catch. This causes a Local reset to halt a running system.
 
     def resetStopOnReset(self):
         ''' perform a reset and stop the core on the reset handler '''
@@ -211,16 +179,17 @@ class XLink(object):
 
         demcr = self.read_U32(self.DEMCR)
 
-        self.write_U32(self.DEMCR, demcr | self.DEMCR_VC_CORERESET) # enable the vector catch
+        self.write_U32(self.DEMCR, demcr | self.DEMCR_VC_CORERESET)
 
         self.reset()
         self.waitReset()
-        while self.running(): pass
+        while not self.halted():
+            time.sleep(0.001)
 
         self.write_U32(self.DEMCR, demcr)
 
     def waitReset(self):
-        ''' Now wait for the system to come out of reset '''
+        ''' wait for the system to come out of reset '''
         startTime = time.time()
         while time.time() - startTime < 2.0:
             try:

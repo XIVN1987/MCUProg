@@ -113,7 +113,7 @@ class Flash(object):
         self.callFunction(pc, r0, r1, r2, r3)
         
         # Wait until the breakpoint is hit
-        while self.xlink.running():
+        while not self.xlink.halted():
             time.sleep(0.001)
 
         if self.xlink.mode.startswith('arm'):
