@@ -86,8 +86,6 @@ class XLink(object):
             return self.xlk.read_core_register_raw(reg.upper())
 
     def read_regs(self, rlist):
-        rlist = [r.upper() for r in rlist]
-        
         if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
             return self.xlk.read_regs(rlist)
         else:
@@ -109,6 +107,9 @@ class XLink(object):
     
     def halt(self):
         self.xlk.halt()
+
+    def step(self):
+        self.xlk.step()
 
     def go(self):
         if isinstance(self.xlk, jlink.JLink):

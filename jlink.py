@@ -191,7 +191,11 @@ class JLink(object):
         0xC24: "Cortex-M4",
         0xC27: "Cortex-M7",
         0xC60: "Cortex-M0+",
-        0x132: "STAR"
+        0xD20: "Cortex-M23",
+        0xD21: "Cortex-M33",
+        0xD22: "Cortex-M55",
+        0xD23: "Cortex-M85",
+        0x132: "Star-MC1"
     }
 
     def read_core_type(self):
