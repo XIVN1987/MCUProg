@@ -42,57 +42,6 @@ class OpenOCD:
             match = re.match(r'\((\d+)\)\s+(\w+)\s+\(/(\d+)\)', line)
             if match:
                 self.core_regs[match.group(2)] = match.group(1)
-        
-        def add_alias(regs, name1, name2, name3):
-            if name1 in regs:
-                regs[name2] = regs[name1]
-                regs[name3] = regs[name1]
-            elif name2 in regs:
-                regs[name1] = regs[name2]
-                regs[name3] = regs[name2]
-            elif name3 in regs:
-                regs[name1] = regs[name3]
-                regs[name2] = regs[name3]
-            else:
-                raise Exception(f'cannot find {name1}, {name2} or {name3}')
-
-        if self.mode.startswith('arm'):
-            add_alias(self.core_regs, 'r13', 'sp', 'r13 (sp)')
-            add_alias(self.core_regs, 'r14', 'lr', 'r14 (lr)')
-            add_alias(self.core_regs, 'r15', 'pc', 'r15 (pc)')
-
-        elif self.mode.startswith('rv'):
-            add_alias(self.core_regs, 'x1',  'ra',  '')
-            add_alias(self.core_regs, 'x2',  'sp',  '')
-            add_alias(self.core_regs, 'x3',  'gp',  '')
-            add_alias(self.core_regs, 'x4',  'tp',  '')
-            add_alias(self.core_regs, 'x5',  't0',  '')
-            add_alias(self.core_regs, 'x6',  't1',  '')
-            add_alias(self.core_regs, 'x7',  't2',  '')
-            add_alias(self.core_regs, 'x8',  's0',  'fp')
-            add_alias(self.core_regs, 'x9',  's1',  '')
-            add_alias(self.core_regs, 'x10', 'a0',  '')
-            add_alias(self.core_regs, 'x11', 'a1',  '')
-            add_alias(self.core_regs, 'x12', 'a2',  '')
-            add_alias(self.core_regs, 'x13', 'a3',  '')
-            add_alias(self.core_regs, 'x14', 'a4',  '')
-            add_alias(self.core_regs, 'x15', 'a5',  '')
-            add_alias(self.core_regs, 'x16', 'a6',  '')
-            add_alias(self.core_regs, 'x17', 'a7',  '')
-            add_alias(self.core_regs, 'x18', 's2',  '')
-            add_alias(self.core_regs, 'x19', 's3',  '')
-            add_alias(self.core_regs, 'x20', 's4',  '')
-            add_alias(self.core_regs, 'x21', 's5',  '')
-            add_alias(self.core_regs, 'x22', 's6',  '')
-            add_alias(self.core_regs, 'x23', 's7',  '')
-            add_alias(self.core_regs, 'x24', 's8',  '')
-            add_alias(self.core_regs, 'x25', 's9',  '')
-            add_alias(self.core_regs, 'x26', 's10', '')
-            add_alias(self.core_regs, 'x27', 's11', '')
-            add_alias(self.core_regs, 'x28', 't3',  '')
-            add_alias(self.core_regs, 'x29', 't4',  '')
-            add_alias(self.core_regs, 'x30', 't5',  '')
-            add_alias(self.core_regs, 'x31', 't6',  '')
 
     def write_U8(self, addr, val):
         self._exec(f'mwb {addr:#x} {val:#x}')
@@ -106,36 +55,32 @@ class OpenOCD:
     def write_U64(self, addr, val):
         self._exec(f'mwd {addr:#x} {val:#x}')
 
-    def write_mem_U8(self, addr, data):
+    def write_mem_(self, addr, data, width):
         index = 0
         while index < len(data):
-            s = ' '.join([f'{x:#x}' for x in data[index:index+256]])
+            s = ' '.join([f'{x:#x}' for x in data[index:index+128]])
             
-            self._exec(f'write_memory {addr:#x} 8 {{{s}}}')
+            self._exec(f'write_memory {addr:#x} {width} {{{s}}}')
 
-            addr += 256
-            index += 256
+            addr += 128 * (width // 8)
+            index += 128
+
+    def write_mem_U8(self, addr, data):
+        self.write_mem_(addr, data, 8)
 
     def write_mem_U32(self, addr, data):
-        index = 0
-        while index < len(data):
-            s = ' '.join([f'{x:#x}' for x in data[index:index+64]])
-            
-            self._exec(f'write_memory {addr:#x} 32 {{{s}}}')
-
-            addr += 64 * 4
-            index += 64
+        self.write_mem_(addr, data, 32)
 
     def read_mem_(self, addr, count, width):
         data = []
         index = 0
         while index < count:    # read too much one-time will cause timeout
-            res = self._exec(f'read_memory {addr:#x} {width} 256')
+            res = self._exec(f'read_memory {addr:#x} {width} {min(128, count)}')
             if res:
                 data.extend([int(x, 16) for x in res.split()])
 
-                addr += 256 * (width // 8)
-                index += 256
+                addr += 128 * (width // 8)
+                index += 128
 
             else:
                 break
@@ -161,19 +106,15 @@ class OpenOCD:
         return self.read_mem_U64(addr, 1)[0]
 
     def read_reg(self, reg):
-        res = self._exec(f'reg {self.core_regs[reg.lower()]}')
+        res = self._exec(f'reg {self.core_regs[reg]}')
 
         return int(res.split(':')[1].strip(), 16)
 
     def read_regs(self, rlist):
-        regs = {}
-        for reg in rlist:
-            regs[reg] = self.read_reg(reg)
-
-        return regs
+        return {reg : self.read_reg(reg) for reg in rlist}
 
     def write_reg(self, reg, val):
-        self._exec(f'reg {self.core_regs[reg.lower()]} {val:#x}')
+        self._exec(f'reg {self.core_regs[reg]} {val:#x}')
 
     # halt: immediately halt after reset
     def reset(self, halt=False):
@@ -205,81 +146,12 @@ class OpenOCD:
         time.sleep(0.2)
 
 
-    CORE_TYPE_NAME = {
-        0xC20: "Cortex-M0",
-        0xC21: "Cortex-M1",
-        0xC23: "Cortex-M3",
-        0xC24: "Cortex-M4",
-        0xC27: "Cortex-M7",
-        0xC60: "Cortex-M0+",
-        0xD20: "Cortex-M23",
-        0xD21: "Cortex-M33",
-        0xD22: "Cortex-M55",
-        0xD23: "Cortex-M85",
-        0x132: "Star-MC1"
-    }
-
-    def read_core_type(self):
-        if self.mode.startswith('arm'):
-            CPUID = 0xE000ED00
-            CPUID_PARTNO_Pos = 4
-            CPUID_PARTNO_Msk = 0x0000FFF0
-            
-            cpuid = self.read_U32(CPUID)
-
-            core_type = (cpuid & CPUID_PARTNO_Msk) >> CPUID_PARTNO_Pos
-            
-            return self.CORE_TYPE_NAME[core_type]
-
-        elif self.mode.startswith('rv'):
-            halted = self.halted()
-            if not halted: self.halt()
-            isa = self.read_reg('MISA')
-            if not halted: self.go()
-
-            if ((isa >> 30) & 3) == 1:
-                name = 'RV32'
-            elif ((isa >> 62) & 3) == 2:
-                name = 'RV64'
-            else:
-                return 'RISC-V'
-
-            indx = lambda chr: ord(chr) - ord('A')
-
-            if isa & (1 << indx('I')):
-                name += 'I'
-            else:
-                name += 'E'
-
-            if isa & (1 << indx('M')):
-                name += 'M'
-
-            if isa & (1 << indx('A')):
-                name += 'A'
-
-            if isa & (1 << indx('F')):
-                name += 'F'
-
-            if isa & (1 << indx('D')):
-                name += 'D'
-
-            if isa & (1 << indx('C')):
-                name += 'C'
-
-            if isa & (1 << indx('B')):
-                name += 'B'
-
-            name = name.replace('IMAFD', 'G')
-
-            return name
-
-
 
 if __name__ == '__main__':
     ocd = OpenOCD()
     ocd.halt()
-    res = ocd.read_core_type()
-    print(res)
+    res = ocd.read_reg('misa')
+    print(f'0x{res:X}')
     res = ocd.read_mem_U32(0x20000000, 4)
     print([f'{x:X}' for x in res])
     ocd.write_U32(0x20000000, 0x12345678)
@@ -288,3 +160,5 @@ if __name__ == '__main__':
     ocd.write_U32(0x2000000C, 0x5A5A5A5A)
     res = ocd.read_mem_U32(0x20000000, 4)
     print([f'{x:X}' for x in res])
+    print(ocd.read_regs(['pc', 'ra', 'sp', 'gp']))
+    print(ocd.core_regs)

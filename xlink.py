@@ -12,11 +12,69 @@ class XLink(object):
     def __init__(self, xlk):
         self.xlk = xlk
 
+        if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
+            self.reg_add_alias()
+
     def open(self, mode, core, speed):
         if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
             self.xlk.open(mode, core, speed)
+
+            self.reg_add_alias()
+            
         else:
             self.xlk.ap.dp.link.open()
+
+    def reg_add_alias(self):
+        def add_alias(regs, name1, name2, name3=None):
+            if name1 in regs:
+                regs[name2] = regs[name1]
+                regs[name3] = regs[name1]
+            elif name2 in regs:
+                regs[name1] = regs[name2]
+                regs[name3] = regs[name2]
+            elif name3 and name3 in regs:
+                regs[name1] = regs[name3]
+                regs[name2] = regs[name3]
+
+        self.xlk.core_regs = {k.lower() : v for k, v in self.xlk.core_regs.items()}
+
+        if self.mode.startswith('arm'):
+            add_alias(self.xlk.core_regs, 'r13', 'sp', 'r13 (sp)')
+            add_alias(self.xlk.core_regs, 'r14', 'lr', 'r14 (lr)')
+            add_alias(self.xlk.core_regs, 'r15', 'pc', 'r15 (pc)')
+
+        elif self.mode.startswith('rv'):
+            add_alias(self.xlk.core_regs, 'x1',  'ra')
+            add_alias(self.xlk.core_regs, 'x2',  'sp')
+            add_alias(self.xlk.core_regs, 'x3',  'gp')
+            add_alias(self.xlk.core_regs, 'x4',  'tp')
+            add_alias(self.xlk.core_regs, 'x5',  't0')
+            add_alias(self.xlk.core_regs, 'x6',  't1')
+            add_alias(self.xlk.core_regs, 'x7',  't2')
+            add_alias(self.xlk.core_regs, 'x8',  's0', 'fp')
+            add_alias(self.xlk.core_regs, 'x9',  's1')
+            add_alias(self.xlk.core_regs, 'x10', 'a0')
+            add_alias(self.xlk.core_regs, 'x11', 'a1')
+            add_alias(self.xlk.core_regs, 'x12', 'a2')
+            add_alias(self.xlk.core_regs, 'x13', 'a3')
+            add_alias(self.xlk.core_regs, 'x14', 'a4')
+            add_alias(self.xlk.core_regs, 'x15', 'a5')
+            add_alias(self.xlk.core_regs, 'x16', 'a6')
+            add_alias(self.xlk.core_regs, 'x17', 'a7')
+            add_alias(self.xlk.core_regs, 'x18', 's2')
+            add_alias(self.xlk.core_regs, 'x19', 's3')
+            add_alias(self.xlk.core_regs, 'x20', 's4')
+            add_alias(self.xlk.core_regs, 'x21', 's5')
+            add_alias(self.xlk.core_regs, 'x22', 's6')
+            add_alias(self.xlk.core_regs, 'x23', 's7')
+            add_alias(self.xlk.core_regs, 'x24', 's8')
+            add_alias(self.xlk.core_regs, 'x25', 's9')
+            add_alias(self.xlk.core_regs, 'x26', 's10')
+            add_alias(self.xlk.core_regs, 'x27', 's11')
+            add_alias(self.xlk.core_regs, 'x28', 't3')
+            add_alias(self.xlk.core_regs, 'x29', 't4')
+            add_alias(self.xlk.core_regs, 'x30', 't5')
+            add_alias(self.xlk.core_regs, 'x31', 't6')
 
     @property
     def mode(self):
@@ -81,19 +139,19 @@ class XLink(object):
 
     def read_reg(self, reg):
         if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
-            return self.xlk.read_reg(reg)
+            return self.xlk.read_reg(reg.lower())
         else:
-            return self.xlk.read_core_register_raw(reg.upper())
+            return self.xlk.read_core_register_raw(reg)
 
     def read_regs(self, rlist):
         if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
-            return self.xlk.read_regs(rlist)
+            return dict(zip(rlist, self.xlk.read_regs([reg.lower() for reg in rlist]).values()))
         else:
             return dict(zip(rlist, self.xlk.read_core_registers_raw(rlist)))
 
     def write_reg(self, reg, val):
         if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
-            self.xlk.write_reg(reg, val)
+            self.xlk.write_reg(reg.lower(), val)
         else:
             self.xlk.write_core_register_raw(reg, val)
 
@@ -129,13 +187,73 @@ class XLink(object):
         else:
             self.xlk.ap.dp.link.close()
 
+    CORE_TYPE_NAME = {
+        0xC20: "Cortex-M0",
+        0xC21: "Cortex-M1",
+        0xC23: "Cortex-M3",
+        0xC24: "Cortex-M4",
+        0xC27: "Cortex-M7",
+        0xC60: "Cortex-M0+",
+        0xD20: "Cortex-M23",
+        0xD21: "Cortex-M33",
+        0xD22: "Cortex-M55",
+        0xD23: "Cortex-M85",
+        0x132: "Star-MC1"
+    }
+
     def read_core_type(self):
-        if isinstance(self.xlk, (jlink.JLink, openocd.OpenOCD)):
-            return self.xlk.read_core_type()
-        else:
-            self.xlk._read_core_type()
-            from pyocd.coresight import cortex_m
-            return cortex_m.CORE_TYPE_NAME[self.xlk.core_type]
+        if self.mode.startswith('arm'):
+            CPUID = 0xE000ED00
+            CPUID_PARTNO_Pos = 4
+            CPUID_PARTNO_Msk = 0x0000FFF0
+            
+            cpuid = self.read_U32(CPUID)
+
+            core_type = (cpuid & CPUID_PARTNO_Msk) >> CPUID_PARTNO_Pos
+            
+            return self.CORE_TYPE_NAME[core_type]
+
+        elif self.mode.startswith('rv'):
+            halted = self.halted()
+            if not halted: self.halt()
+            isa = self.read_reg('misa')
+            if not halted: self.go()
+
+            if ((isa >> 30) & 3) == 1:
+                name = 'RV32'
+            elif ((isa >> 62) & 3) == 2:
+                name = 'RV64'
+            else:
+                return 'RISC-V'
+
+            indx = lambda chr: ord(chr) - ord('A')
+
+            if isa & (1 << indx('I')):
+                name += 'I'
+            else:
+                name += 'E'
+
+            if isa & (1 << indx('M')):
+                name += 'M'
+
+            if isa & (1 << indx('A')):
+                name += 'A'
+
+            if isa & (1 << indx('F')):
+                name += 'F'
+
+            if isa & (1 << indx('D')):
+                name += 'D'
+
+            if isa & (1 << indx('C')):
+                name += 'C'
+
+            if isa & (1 << indx('B')):
+                name += 'B'
+
+            name = name.replace('IMAFD', 'G')
+
+            return name
 
     def reset_and_halt(self):
         if isinstance(self.xlk, openocd.OpenOCD):
