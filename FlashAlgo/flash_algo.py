@@ -227,12 +227,13 @@ class ElfFileSimple(ELFFile):
 
 if __name__ == '__main__':
     # 中断halt程序，让函数执行完后返回到这里来执行从而让CPU自动halt住
-    BLOB_HEADER = '0xE00ABE00, 0x062D780D, 0x24084068, 0xD3000040, 0x1E644058, 0x1C49D1FA, 0x2A001E52, 0x4770D1F2,'
+    BLOB_HEADER_ARM = '0xE00ABE00, 0x062D780D, 0x24084068, 0xD3000040, 0x1E644058, 0x1C49D1FA, 0x2A001E52, 0x4770D1F2,'
+    BLOB_HEADER_RV  = '0x00100073, 0x00000013, 0x00000013, 0x00000013, 0x00000013, 0x00000013, 0x00000013, 0x00000013,'
     HEADER_SIZE = 0x20
 
     data_dict = {
         'name': 'STM32F10x_128',
-        'prog_header': BLOB_HEADER,
+        'prog_header': BLOB_HEADER_ARM,
         'header_size': HEADER_SIZE,
         'entry': 0x20000000,
         'stack_pointer': 0x20000000 + 2048,
@@ -244,4 +245,8 @@ if __name__ == '__main__':
                 algo = PackFlashAlgo(f.read())
                 print(algo.flash_info)
                 if 'algo' in data_dict: del data_dict['algo']
+                if algo.elf.get_machine_arch() == 'RISC-V':
+                    data_dict['prog_header'] = BLOB_HEADER_RV
+                else:
+                    data_dict['prog_header'] = BLOB_HEADER_ARM
                 algo.process_template('py_blob.tmpl', name.replace('.FLM', '.py'), data_dict)
