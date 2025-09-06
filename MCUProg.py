@@ -66,7 +66,7 @@ class MCUProg(QWidget):
         self.cmbSpeed.setCurrentIndex(zero_if(self.cmbSpeed.findText(self.conf.get('link', 'speed'))))
 
         self.cmbDLL.addItem(self.conf.get('link', 'jlink'), 'jlink')
-        self.cmbDLL.addItem('OpenOCD', 'openocd')
+        self.cmbDLL.addItem('OpenOCD Tcl RPC (6666)', 'openocd')
         self.on_tmrDAP_timeout()    # add DAPLink
 
         self.cmbDLL.setCurrentIndex(zero_if(self.cmbDLL.findText(self.conf.get('link', 'select'))))
