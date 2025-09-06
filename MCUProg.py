@@ -59,7 +59,7 @@ class MCUProg(QWidget):
             self.conf.add_section('link')
             self.conf.set('link', 'mode', 'ARM SWD')
             self.conf.set('link', 'speed', '4 MHz')
-            self.conf.set('link', 'jlink', '')
+            self.conf.set('link', 'jlink', 'path/to/JLink_x64.dll')
             self.conf.set('link', 'select', '')
 
         self.cmbMode.setCurrentIndex(zero_if(self.cmbMode.findText(self.conf.get('link', 'mode'))))
