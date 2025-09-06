@@ -19,7 +19,7 @@ class OpenOCD:
     def open(self, mode='rv', core='risc-v', speed=4000):
         self.mode = mode.lower()
 
-        self.tnet.open(self.host, self.port, 2)
+        self.tnet.open(self.host, self.port, 1)
         self._read()
 
         self.get_registers()
@@ -43,18 +43,34 @@ class OpenOCD:
             if match:
                 self.core_regs[match.group(2)] = match.group(1)
 
+    def halt_required(func):
+        def wrapper(self, *args, **kwargs):
+            halted = self.halted()
+            if not halted: self.halt()
+            res = func(self, *args, **kwargs)
+            if not halted: self.resume()
+
+            return res
+
+        return wrapper
+
+    @halt_required
     def write_U8(self, addr, val):
         self._exec(f'mwb {addr:#x} {val:#x}')
 
+    @halt_required
     def write_U16(self, addr, val):
         self._exec(f'mwh {addr:#x} {val:#x}')
 
+    @halt_required
     def write_U32(self, addr, val):
         self._exec(f'mww {addr:#x} {val:#x}')
 
+    @halt_required
     def write_U64(self, addr, val):
         self._exec(f'mwd {addr:#x} {val:#x}')
 
+    @halt_required
     def write_mem_(self, addr, data, width):
         index = 0
         while index < len(data):
@@ -71,6 +87,7 @@ class OpenOCD:
     def write_mem_U32(self, addr, data):
         self.write_mem_(addr, data, 32)
 
+    @halt_required
     def read_mem_(self, addr, count, width):
         data = []
         index = 0
