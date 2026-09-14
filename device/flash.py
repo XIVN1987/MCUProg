@@ -13,7 +13,7 @@ class Flash(object):
         self.xlink = xlink
 
         self.falgo = falgo
-
+        
         # perform a reset and stop the core on the reset handler
         self.xlink.reset_and_halt()
         
@@ -30,7 +30,7 @@ class Flash(object):
 
         # 将Flash算法下载到RAM
         self.xlink.write_mem_U32(self.falgo['load_address'], self.falgo['instructions'])
-
+    
     def Init(self, addr, clk, func):    # func: 1 - Erase, 2 - Program, 3 - Verify
         print(f'Init {func}')
         
@@ -114,7 +114,7 @@ class Flash(object):
         
         # Wait until the breakpoint is hit
         while not self.xlink.halted():
-            time.sleep(0.001)
+            time.sleep(0.01)
 
         if self.xlink.mode.startswith('arm'):
             return self.xlink.read_reg('r0')
